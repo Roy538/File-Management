@@ -12,8 +12,8 @@ export interface AuthUser {
 interface LoginDto {
   email: string;
   password: string;
-  branchId: string;
-  businessUnitId: string;
+  branchId?: string;
+  businessUnitId?: string;
 }
 
 interface TokenResponse {

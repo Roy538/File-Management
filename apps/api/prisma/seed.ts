@@ -17,6 +17,32 @@ const BRANCHES = [
 async function main() {
   const passwordHash = await bcrypt.hash('Password@123', 12);
 
+  // ── Super Admin ─────────────────────────────────────────────────────────────
+  const superHash = await bcrypt.hash('SuperAdmin1234!', 12);
+  const sysBu = await prisma.businessUnit.upsert({
+    where: { code: 'SYS' },
+    update: {},
+    create: { name: 'System', code: 'SYS' },
+  });
+  const sysBranch = await prisma.branch.upsert({
+    where: { businessUnitId_code: { businessUnitId: sysBu.id, code: 'SYS' } },
+    update: {},
+    create: { name: 'System Branch', code: 'SYS', businessUnitId: sysBu.id },
+  });
+  await prisma.user.upsert({
+    where: { email: 'superadmin@fts.local' },
+    update: {},
+    create: {
+      email: 'superadmin@fts.local',
+      passwordHash: superHash,
+      firstName: 'Super',
+      lastName: 'Admin',
+      role: Role.SUPER_ADMIN,
+      branchId: sysBranch.id,
+      businessUnitId: sysBu.id,
+    },
+  });
+
   for (const buData of BUS) {
     const bu = await prisma.businessUnit.upsert({
       where: { code: buData.code },

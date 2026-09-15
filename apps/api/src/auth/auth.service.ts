@@ -20,6 +20,19 @@ export class AuthService {
   ) {}
 
   async login(dto: LoginDto) {
+    // SUPER_ADMIN path: no BU/Branch required
+    if (!dto.businessUnitId || !dto.branchId) {
+      const user = await this.prisma.user.findFirst({
+        where: { email: dto.email, isActive: true },
+      });
+      if (!user || user.role !== 'SUPER_ADMIN')
+        throw new UnauthorizedException('Invalid credentials');
+      const valid = await bcrypt.compare(dto.password, user.passwordHash);
+      if (!valid) throw new UnauthorizedException('Invalid credentials');
+      return this.issueTokens(user.id, user.email, user.role, user.branchId, user.businessUnitId);
+    }
+
+    // Staff path: BU + Branch must match
     const user = await this.prisma.user.findFirst({
       where: {
         email: dto.email,
@@ -28,12 +41,9 @@ export class AuthService {
         isActive: true,
       },
     });
-
     if (!user) throw new UnauthorizedException('Invalid credentials');
-
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) throw new UnauthorizedException('Invalid credentials');
-
     return this.issueTokens(user.id, user.email, user.role, user.branchId, user.businessUnitId);
   }
 

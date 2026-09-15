@@ -20,7 +20,10 @@ export class RolesGuard implements CanActivate {
     const req = ctx.switchToHttp().getRequest<any>();
     const user: JwtPayload | undefined = req.user;
 
-    if (!user || !required.includes(user.role)) {
+    if (!user) throw new ForbiddenException('Insufficient permissions');
+    // SUPER_ADMIN bypasses every role restriction
+    if (user.role === Role.SUPER_ADMIN) return true;
+    if (!required.includes(user.role)) {
       throw new ForbiddenException('Insufficient permissions');
     }
 
