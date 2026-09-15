@@ -29,11 +29,18 @@ export function LoginPage() {
     if (user) navigate('/dashboard', { replace: true });
   }, [user, navigate]);
 
-  // Load BUs once on mount
+  // Liveness probe — /health never touches the DB
+  useEffect(() => {
+    api.get('/health')
+      .then(() => setApiOnline(true))
+      .catch(() => setApiOnline(false));
+  }, []);
+
+  // BU fetch — runs independently; failure only affects the Staff dropdown
   useEffect(() => {
     api.get<BU[]>('/api/auth/business-units')
-      .then(data => { setBUs(data); setApiOnline(true); })
-      .catch(() => setApiOnline(false));
+      .then(data => setBUs(data))
+      .catch(() => {});
   }, []);
 
   // Load branches when BU selected
@@ -124,12 +131,23 @@ export function LoginPage() {
             {/* Staff-only: BU + Branch */}
             {mode === 'staff' && (
               <>
-                {apiOnline === false && (
+                {apiOnline === false ? (
                   <div className="flex items-center gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2.5">
                     <span className="text-red-500 text-sm">⚠</span>
-                    <p className="text-xs text-red-700">API is offline — staff login unavailable. Use Admin Login instead.</p>
+                    <p className="text-xs text-red-700">Server is unreachable — use Admin Login, or start the API first.</p>
                   </div>
-                )}
+                ) : apiOnline === true && businessUnits.length === 0 ? (
+                  <div className="flex items-center justify-between gap-2 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5">
+                    <p className="text-xs text-amber-700">Database is starting up — business units not yet available.</p>
+                    <button
+                      type="button"
+                      onClick={() => api.get<BU[]>('/api/auth/business-units').then(d => setBUs(d)).catch(() => {})}
+                      className="text-xs font-semibold text-amber-700 underline whitespace-nowrap"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : null}
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1.5">Business Unit</label>
