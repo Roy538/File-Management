@@ -1,0 +1,121 @@
+# Production overrides — use with:
+#
+#   export REGISTRY=ghcr.io/your-org  TAG=1.2.3
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# Prerequisites:
+#   1. Create .env.prod (gitignored) from .env.example and fill in all secrets
+#   2. Ensure an external reverse proxy (Caddy / Traefik / nginx) terminates TLS
+#      and forwards to the web service on port 80
+#   3. For S3: set STORAGE_DRIVER=s3 in .env.prod and remove the minio service
+
+name: fts-prod
+
+# ── Shared fragments ──────────────────────────────────────────────────────────
+
+x-restart: &restart
+  restart: unless-stopped
+
+x-env: &env
+  env_file: .env.prod
+
+# ── Network isolation ─────────────────────────────────────────────────────────
+# internet → web (public) → api (backend) → postgres/redis (database)
+networks:
+  public:
+  backend:
+  database:
+
+services:
+  # ── Infrastructure ────────────────────────────────────────────────────────────
+
+  postgres:
+    <<: [*restart]
+    networks:
+      - database
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # init-db.sql is removed — schema is applied via prisma migrate deploy at startup
+
+  redis:
+    <<: [*restart]
+    networks:
+      - backend
+
+  minio:
+    <<: [*restart]
+    networks:
+      - backend
+    # Remove this service in prod if using AWS S3 (set STORAGE_DRIVER=s3 in .env.prod)
+
+  # ── Application ──────────────────────────────────────────────────────────────
+
+  api:
+    image: ${REGISTRY}/fts-api:${TAG:-latest}
+    <<: [*restart, *env]
+    networks:
+      - backend
+      - database
+    environment:
+      NODE_ENV: production
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    # No port mapping — accessed only through the web/nginx container
+    ports: []
+
+  web:
+    image: ${REGISTRY}/fts-web:${TAG:-latest}
+    <<: [*restart]
+    networks:
+      - public
+      - backend
+    ports:
+      - "80:80"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 128M
+
+  ocr-worker:
+    image: ${REGISTRY}/fts-ocr-worker:${TAG:-latest}
+    <<: [*restart, *env]
+    networks:
+      - backend
+    # No external port — only reachable from api container
+    ports: []
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+  # ── E-signature ──────────────────────────────────────────────────────────────
+
+  documenso:
+    image: documenso/documenso:latest
+    <<: [*restart, *env]
+    networks:
+      - public
+      - database
+    environment:
+      NODE_ENV: production
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+    ports:
+      - "3001:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy

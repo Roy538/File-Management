@@ -1,0 +1,153 @@
+name: fts-dev
+
+services:
+  # ── Infrastructure ────────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: fts
+      POSTGRES_PASSWORD: fts_password
+      POSTGRES_DB: fts_dev
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init-db.sql:/docker-entrypoint-initdb.d/01-init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fts -d fts_dev"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - "6379:6379"
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      # mc is not in the default MinIO image; use the health endpoint instead
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider",
+             "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    ports:
+      - "9000:9000"   # S3-compatible API
+      - "9001:9001"   # MinIO web console
+
+  mailhog:
+    image: mailhog/mailhog:latest
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+
+  # ── Application services ──────────────────────────────────────────────────────
+
+  ocr-worker:
+    build:
+      context: ../services/ocr-worker
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: fts-documents
+    depends_on:
+      minio:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider",
+             "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  api:
+    build:
+      context: ..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://fts:fts_password@postgres:5432/fts_dev
+      REDIS_URL: redis://redis:6379
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: fts-documents
+      STORAGE_DRIVER: minio
+      OCR_WORKER_URL: http://ocr-worker:8000
+      SMTP_HOST: mailhog
+      SMTP_PORT: "1025"
+      EMAIL_FROM: noreply@file-tracking.local
+      CORS_ORIGINS: http://localhost:5173
+      JWT_ACCESS_SECRET: dev-access-secret-change-in-production-32
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-in-production-32
+      JWT_ACCESS_EXPIRY: 15m
+      JWT_REFRESH_EXPIRY: 7d
+      DOCUMENSO_API_URL: http://documenso:3000
+      DOCUMENSO_API_KEY: ""
+      DOCUMENSO_WEBHOOK_SECRET: ""
+      NODE_ENV: development
+      PORT: "3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+  web:
+    build:
+      context: ..
+      dockerfile: apps/web/Dockerfile
+    depends_on:
+      - api
+    ports:
+      - "5173:80"
+
+  # ── E-signature (enable when Documenso is ready) ──────────────────────────────
+  # To enable:
+  #   1. Set DOCUMENSO_API_KEY and DOCUMENSO_WEBHOOK_SECRET in the api service above
+  #   2. Uncomment the block below
+  #   3. docker compose up documenso
+  #
+  # documenso:
+  #   image: documenso/documenso:latest
+  #   environment:
+  #     NEXTAUTH_URL: http://localhost:3001
+  #     NEXTAUTH_SECRET: documenso-nextauth-secret-change-me
+  #     DATABASE_URL: postgresql://fts:fts_password@postgres:5432/documenso
+  #     NEXT_PUBLIC_WEBAPP_URL: http://localhost:3001
+  #     NEXT_PRIVATE_SMTP_HOST: mailhog
+  #     NEXT_PRIVATE_SMTP_PORT: "1025"
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   ports:
+  #     - "3001:3000"
+
+volumes:
+  pgdata:
+  redisdata:
+  minio_data:

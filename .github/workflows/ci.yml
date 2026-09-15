@@ -1,0 +1,115 @@
+name: CI
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  # ── API: typecheck → unit tests → build ─────────────────────────────────────
+  api:
+    name: API — Typecheck, Test & Build
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: fts
+          POSTGRES_PASSWORD: fts_password
+          POSTGRES_DB: fts_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 6379:6379
+
+    env:
+      DATABASE_URL: postgresql://fts:fts_password@localhost:5432/fts_test
+      REDIS_URL: redis://localhost:6379
+      JWT_ACCESS_SECRET: ci-access-secret-32-chars-minimum-x
+      JWT_REFRESH_SECRET: ci-refresh-secret-32-chars-minimum-x
+      JWT_ACCESS_EXPIRY: 15m
+      JWT_REFRESH_EXPIRY: 7d
+      NODE_ENV: test
+      STORAGE_DRIVER: minio
+      MINIO_ENDPOINT: http://localhost:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: fts-test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm --filter @fts/api exec prisma generate
+
+      - name: Type check — shared-types
+        run: pnpm --filter @fts/shared-types typecheck
+
+      - name: Type check — API
+        run: pnpm --filter @fts/api typecheck
+
+      - name: Lint — API
+        run: pnpm --filter @fts/api lint
+
+      - name: Run API unit tests
+        run: pnpm --filter @fts/api test
+
+      - name: Build — API
+        run: pnpm --filter @fts/api build
+
+      - name: Dependency audit
+        run: pnpm audit --audit-level=high
+        continue-on-error: true
+
+  # ── Web: typecheck → build ───────────────────────────────────────────────────
+  web:
+    name: Web — Typecheck & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type check — web
+        run: pnpm --filter @fts/web typecheck
+
+      - name: Build — web
+        run: pnpm --filter @fts/web build

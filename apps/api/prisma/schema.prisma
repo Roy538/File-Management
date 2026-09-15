@@ -1,0 +1,506 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextSearch"]
+}
+
+// ---------------------------------------------------------------------------
+// Enums
+// ---------------------------------------------------------------------------
+
+enum Role {
+  ADMIN
+  OFFICER
+  DEPT_USER
+}
+
+enum FileStatus {
+  AVAILABLE
+  DISPATCHED
+  RETURNED
+  ARCHIVED
+  MISSING
+}
+
+enum FileMovementAction {
+  CREATED
+  DISPATCHED
+  RETURNED
+  RELOCATED
+  ARCHIVED
+  FLAGGED_MISSING
+  RECOVERED
+}
+
+enum DocumentStatus {
+  DRAFT
+  CHECKED_IN
+  CHECKED_OUT
+  ON_HOLD
+  FINALIZED
+  ARCHIVED
+}
+
+enum RetentionAction {
+  DELETE
+  ARCHIVE
+  NOTIFY
+}
+
+enum ESignatureStatus {
+  PENDING
+  COMPLETED
+  DECLINED
+  EXPIRED
+}
+
+enum WorkflowStatus {
+  PENDING
+  IN_PROGRESS
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum FileRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AclPermission {
+  NONE
+  READ
+  WRITE
+  ADMIN
+}
+
+// ---------------------------------------------------------------------------
+// Org Structure
+// ---------------------------------------------------------------------------
+
+model BusinessUnit {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  code      String    @unique
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  branches Branch[]
+  files    File[]
+  cabinets Cabinet[]
+
+  @@map("business_units")
+}
+
+model Branch {
+  id             String    @id @default(cuid())
+  name           String
+  code           String
+  businessUnitId String
+  isActive       Boolean   @default(true)
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  businessUnit BusinessUnit @relation(fields: [businessUnitId], references: [id])
+  users        User[]
+  files        File[]
+
+  @@unique([businessUnitId, code])
+  @@map("branches")
+}
+
+// ---------------------------------------------------------------------------
+// Users & Auth
+// ---------------------------------------------------------------------------
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  passwordHash   String
+  firstName      String
+  lastName       String
+  role           Role
+  branchId       String
+  businessUnitId String
+  isActive       Boolean   @default(true)
+  deletedAt      DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  branch Branch @relation(fields: [branchId], references: [id])
+
+  refreshTokens        RefreshToken[]
+  auditLogs            AuditLog[]
+  dispatches           Dispatch[]      @relation("DispatchedByUser")
+  authorizedDispatches Dispatch[]      @relation("AuthorizedByUser")
+  returns              Return[]
+  fileMovements        FileMovement[]
+  fileRequests         FileRequest[]
+  documentACLs         DocumentACL[]
+  checkedOutDocs       Document[]         @relation("CheckedOutBy")
+  workflowInstances    WorkflowInstance[]
+  ownedCabinets        Cabinet[]          @relation("OwnedCabinets")
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  userId    String
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("refresh_tokens")
+}
+
+// ---------------------------------------------------------------------------
+// Part A — Physical File Registry
+// ---------------------------------------------------------------------------
+
+model File {
+  id              String     @id @default(cuid())
+  fileNumber      String     @unique
+  customerName    String
+  businessUnitId  String
+  branchId        String
+  dateCreated     DateTime   @default(now())
+  status          FileStatus @default(AVAILABLE)
+  currentLocation String?
+  volumeNumber    Int        @default(1)
+  isActive        Boolean    @default(true)
+  deletedAt       DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  businessUnit BusinessUnit  @relation(fields: [businessUnitId], references: [id])
+  branch       Branch        @relation(fields: [branchId], references: [id])
+  dispatches   Dispatch[]
+  returns      Return[]
+  movements    FileMovement[]
+  fileRequests FileRequest[]
+
+  @@map("files")
+}
+
+model Dispatch {
+  id               String    @id @default(cuid())
+  fileId           String
+  dispatchedById   String
+  authorizedById   String?
+  dispatchedTo     String
+  department       String
+  reason           String?
+  expectedReturnAt DateTime?
+  actualReturnAt   DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  file         File    @relation(fields: [fileId], references: [id])
+  dispatchedBy User    @relation("DispatchedByUser", fields: [dispatchedById], references: [id])
+  authorizedBy User?   @relation("AuthorizedByUser", fields: [authorizedById], references: [id])
+  return       Return?
+
+  @@map("dispatches")
+}
+
+model Return {
+  id                        String   @id @default(cuid())
+  fileId                    String
+  dispatchId                String   @unique
+  receivedById              String
+  returnedBy                String?
+  condition                 String?
+  returnedToCorrectLocation Boolean  @default(true)
+  actualLocation            String?
+  notes                     String?
+  createdAt                 DateTime @default(now())
+
+  file       File     @relation(fields: [fileId], references: [id])
+  dispatch   Dispatch @relation(fields: [dispatchId], references: [id])
+  receivedBy User     @relation(fields: [receivedById], references: [id])
+
+  @@map("returns")
+}
+
+model FileMovement {
+  id            String             @id @default(cuid())
+  fileId        String
+  action        FileMovementAction
+  performedById String
+  department    String?
+  fromLocation  String?
+  toLocation    String?
+  notes         String?
+  createdAt     DateTime           @default(now())
+
+  file        File @relation(fields: [fileId], references: [id])
+  performedBy User @relation(fields: [performedById], references: [id])
+
+  @@map("file_movements")
+}
+
+model FileRequest {
+  id            String            @id @default(cuid())
+  fileId        String
+  requestedById String
+  department    String
+  purpose       String?
+  status        FileRequestStatus @default(PENDING)
+  notes         String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  file        File @relation(fields: [fileId], references: [id])
+  requestedBy User @relation(fields: [requestedById], references: [id])
+
+  @@map("file_requests")
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  userId     String?
+  action     String
+  resource   String
+  resourceId String?
+  metadata   Json?
+  ipAddress  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id])
+
+  @@map("audit_logs")
+}
+
+// ---------------------------------------------------------------------------
+// Part B — Digital Document Management
+// ---------------------------------------------------------------------------
+
+model RetentionPolicy {
+  id            String          @id @default(cuid())
+  name          String
+  retentionDays Int
+  action        RetentionAction
+  isActive      Boolean         @default(true)
+  deletedAt     DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  cabinets Cabinet[]
+
+  @@map("retention_policies")
+}
+
+enum CabinetVisibility {
+  PERSONAL // owned by and visible to a single user
+  PRIVATE  // owned by a user; shared with users/roles granted an ACL
+  DEFAULT  // shared across the whole business unit
+}
+
+model Cabinet {
+  id                String            @id @default(cuid())
+  name              String
+  businessUnitId    String
+  retentionPolicyId String?
+  visibility        CabinetVisibility @default(DEFAULT)
+  ownerId           String?
+  isActive          Boolean           @default(true)
+  deletedAt         DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+
+  businessUnit    BusinessUnit     @relation(fields: [businessUnitId], references: [id])
+  retentionPolicy RetentionPolicy? @relation(fields: [retentionPolicyId], references: [id])
+  owner           User?            @relation("OwnedCabinets", fields: [ownerId], references: [id])
+  folders         Folder[]
+  acls            DocumentACL[]
+
+  @@index([ownerId])
+  @@map("cabinets")
+}
+
+model Folder {
+  id        String    @id @default(cuid())
+  name      String
+  cabinetId String
+  parentId  String?
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  cabinet     Cabinet      @relation(fields: [cabinetId], references: [id])
+  parent      Folder?      @relation("FolderChildren", fields: [parentId], references: [id])
+  children    Folder[]     @relation("FolderChildren")
+  subDividers SubDivider[]
+  documents   Document[]
+  acls        DocumentACL[]
+
+  @@map("folders")
+}
+
+model SubDivider {
+  id        String    @id @default(cuid())
+  name      String
+  folderId  String
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  folder    Folder     @relation(fields: [folderId], references: [id])
+  documents Document[]
+
+  @@map("sub_dividers")
+}
+
+model DocumentType {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  isActive    Boolean   @default(true)
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  documents Document[]
+
+  @@map("document_types")
+}
+
+model Document {
+  id              String         @id @default(cuid())
+  title           String
+  documentTypeId  String?
+  folderId        String?
+  subDividerId    String?
+  status          DocumentStatus @default(DRAFT)
+  checkedOutById  String?
+  checkedOutAt    DateTime?
+  ocrText         String?
+  ocrSearchVector Unsupported("tsvector")?
+  metadata        Json?
+  isActive        Boolean        @default(true)
+  deletedAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  documentType       DocumentType?       @relation(fields: [documentTypeId], references: [id])
+  folder             Folder?             @relation(fields: [folderId], references: [id])
+  subDivider         SubDivider?         @relation(fields: [subDividerId], references: [id])
+  checkedOutBy       User?               @relation("CheckedOutBy", fields: [checkedOutById], references: [id])
+  versions           DocumentVersion[]
+  acls               DocumentACL[]
+  eSignatureRequests ESignatureRequest[]
+  workflowInstances  WorkflowInstance[]
+
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id            String   @id @default(cuid())
+  documentId    String
+  versionNumber Int
+  storageKey    String
+  fileName      String
+  mimeType      String
+  fileSize      Int
+  checksum      String
+  uploadedById  String
+  createdAt     DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id])
+
+  @@unique([documentId, versionNumber])
+  @@map("document_versions")
+}
+
+model DocumentACL {
+  id         String        @id @default(cuid())
+  permission AclPermission
+  userId     String?
+  role       Role?
+  cabinetId  String?
+  folderId   String?
+  documentId String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  user     User?     @relation(fields: [userId], references: [id])
+  cabinet  Cabinet?  @relation(fields: [cabinetId], references: [id])
+  folder   Folder?   @relation(fields: [folderId], references: [id])
+  document Document? @relation(fields: [documentId], references: [id])
+
+  @@map("document_acls")
+}
+
+model WorkflowDefinition {
+  id        String    @id @default(cuid())
+  name      String
+  steps     Json
+  isActive  Boolean   @default(true)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  instances WorkflowInstance[]
+
+  @@map("workflow_definitions")
+}
+
+model WorkflowInstance {
+  id                   String         @id @default(cuid())
+  workflowDefinitionId String
+  documentId           String
+  status               WorkflowStatus @default(PENDING)
+  currentState         String?
+  initiatedById        String
+  history              Json           @default("[]")
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
+
+  workflowDefinition WorkflowDefinition @relation(fields: [workflowDefinitionId], references: [id])
+  document           Document           @relation(fields: [documentId], references: [id])
+  initiatedBy        User               @relation(fields: [initiatedById], references: [id])
+
+  @@map("workflow_instances")
+}
+
+model ESignatureRequest {
+  id                 String           @id @default(cuid())
+  documentId         String
+  externalProviderId String?
+  status             ESignatureStatus @default(PENDING)
+  signers            Json
+  completedAt        DateTime?
+  expiresAt          DateTime?
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @updatedAt
+
+  document Document @relation(fields: [documentId], references: [id])
+
+  @@map("e_signature_requests")
+}

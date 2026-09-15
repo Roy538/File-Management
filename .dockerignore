@@ -1,0 +1,35 @@
+# Version control
+.git
+.gitignore
+.github
+
+# Dependencies (each image stage installs its own)
+node_modules
+**/node_modules
+
+# Build output (built inside the image)
+apps/api/dist
+apps/web/dist
+apps/*/coverage
+
+# Dev tooling not needed in images
+.idea
+.vscode
+*.log
+
+# Docs and planning files
+*.md
+*.docx
+build_prompt*.md
+docs
+
+# Secrets — never bake into images
+.env
+.env.*
+!.env.example
+
+# Infra config (not part of any app image)
+infra
+
+# OCR worker (has its own build context)
+services
