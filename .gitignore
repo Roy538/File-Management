@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.env
+.env.local
+.env.*.local
+*.log
+coverage/
+.DS_Store
+*.tsbuildinfo
+.idea/workspace.xml
+.idea/shelf/
+
+# Prisma
+apps/api/prisma/migrations/
+
+# Test artifacts
+test-results/
+playwright-report/
+
+# Build outputs
+apps/web/dist/
+apps/api/dist/
