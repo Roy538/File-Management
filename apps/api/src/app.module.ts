@@ -35,11 +35,13 @@ import { FileRequestsModule } from './file-requests/file-requests.module';
       useFactory: (cfg: ConfigService) => {
         const raw = cfg.get<string>('REDIS_URL') ?? 'redis://localhost:6379';
         const url = new URL(raw);
+        const isTls = url.protocol === 'rediss:';
         return {
           connection: {
             host: url.hostname,
-            port: Number(url.port) || 6379,
+            port: Number(url.port) || (isTls ? 6380 : 6379),
             ...(url.password && { password: decodeURIComponent(url.password) }),
+            ...(isTls && { tls: {} }),
           },
         };
       },
