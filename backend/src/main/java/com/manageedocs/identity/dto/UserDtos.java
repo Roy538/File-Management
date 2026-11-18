@@ -37,6 +37,9 @@ public final class UserDtos {
     public record PermissionOverridesRequest(Set<Permission> grant, Set<Permission> deny) {
     }
 
+    public record PermissionOverridesView(java.util.List<String> grant, java.util.List<String> deny) {
+    }
+
     public record UserView(UUID id, String email, String firstName, String lastName, Role role, UUID departmentId,
                            boolean active, Instant lastLoginAt, boolean locked) {
         public static UserView of(User u, Instant now) {

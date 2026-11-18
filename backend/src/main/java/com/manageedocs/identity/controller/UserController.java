@@ -61,6 +61,12 @@ public class UserController {
         return StandardAPIResponse.success(users.update(CurrentUser.get(), id, req), "User updated");
     }
 
+    @GetMapping("/{id}/permissions")
+    @PreAuthorize("hasAuthority('TENANT_USERS_VIEW')")
+    public StandardAPIResponse<com.manageedocs.identity.dto.UserDtos.PermissionOverridesView> getPermissions(@PathVariable UUID id) {
+        return StandardAPIResponse.success(users.overrides(id), "Permissions retrieved");
+    }
+
     @PutMapping("/{id}/permissions")
     @PreAuthorize("hasAuthority('TENANT_USERS_MANAGE')")
     public StandardAPIResponse<Void> setPermissions(@PathVariable UUID id, @RequestBody PermissionOverridesRequest req) {

@@ -87,6 +87,15 @@ public class UserAdminService {
         return UserView.of(u, clock.instant());
     }
 
+    @Transactional(readOnly = true)
+    public com.manageedocs.identity.dto.UserDtos.PermissionOverridesView overrides(UUID id) {
+        users.findById(id).orElseThrow(() -> ApiException.notFound("User"));
+        var all = overrides.findForUser(id);
+        return new com.manageedocs.identity.dto.UserDtos.PermissionOverridesView(
+                all.stream().filter(o -> o.getEffect() == UserPermission.Effect.GRANT).map(o -> o.getPermission().name()).sorted().toList(),
+                all.stream().filter(o -> o.getEffect() == UserPermission.Effect.DENY).map(o -> o.getPermission().name()).sorted().toList());
+    }
+
     /** Replaces the user's overrides. The caller can only grant capabilities they hold themselves. */
     @Transactional
     public void setOverrides(AppUserDetails caller, UUID id, PermissionOverridesRequest req) {

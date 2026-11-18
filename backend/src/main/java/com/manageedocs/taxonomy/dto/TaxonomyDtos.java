@@ -35,7 +35,7 @@ public final class TaxonomyDtos {
     }
 
     public record CabinetView(UUID id, String name, String description, Cabinet.Visibility visibility,
-                              UUID ownerId, List<String> rights) {
+                              UUID ownerId, List<String> rights, UUID retentionPolicyId) {
     }
 
     public record SubDividerView(UUID id, UUID folderId, String name) {
@@ -85,6 +85,7 @@ public final class TaxonomyDtos {
         }
     }
 
-    public record DocumentTypeView(UUID id, String name, String description, List<MetadataFieldView> fields) {
+    public record DocumentTypeView(UUID id, String name, String description, List<MetadataFieldView> fields,
+                                   UUID retentionPolicyId) {
     }
 }

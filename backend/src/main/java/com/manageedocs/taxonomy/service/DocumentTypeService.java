@@ -43,7 +43,7 @@ public class DocumentTypeService {
                 .stream().collect(Collectors.groupingBy(MetadataField::getDocumentTypeId,
                         Collectors.mapping(MetadataFieldView::of, Collectors.toList())));
         return all.stream().map(t -> new DocumentTypeView(t.getId(), t.getName(), t.getDescription(),
-                byType.getOrDefault(t.getId(), List.of()))).toList();
+                byType.getOrDefault(t.getId(), List.of()), t.getRetentionPolicyId())).toList();
     }
 
     @Transactional
@@ -74,6 +74,7 @@ public class DocumentTypeService {
 
     private DocumentTypeView view(DocumentType t) {
         return new DocumentTypeView(t.getId(), t.getName(), t.getDescription(),
-                fields.findByDocumentTypeIdOrderBySortOrderAsc(t.getId()).stream().map(MetadataFieldView::of).toList());
+                fields.findByDocumentTypeIdOrderBySortOrderAsc(t.getId()).stream().map(MetadataFieldView::of).toList(),
+                t.getRetentionPolicyId());
     }
 }

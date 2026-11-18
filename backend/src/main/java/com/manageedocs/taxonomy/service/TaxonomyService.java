@@ -86,7 +86,7 @@ public class TaxonomyService {
         return candidates.stream()
                 .filter(c -> scope == null || c.getVisibility() == scope)
                 .map(c -> new CabinetView(c.getId(), c.getName(), c.getDescription(), c.getVisibility(), c.getOwnerId(),
-                        rightNames(eval.rights(c, List.of(), null))))
+                        rightNames(eval.rights(c, List.of(), null)), c.getRetentionPolicyId()))
                 .filter(v -> v.rights().contains("view") || navigable.contains(v.id()))
                 .toList();
     }
@@ -130,7 +130,7 @@ public class TaxonomyService {
         }
         nodes.sort((a, b) -> a.name().compareToIgnoreCase(b.name()));
         return new CabinetTree(new CabinetView(c.getId(), c.getName(), c.getDescription(), c.getVisibility(),
-                c.getOwnerId(), rightNames(cabinetRights)), nodes);
+                c.getOwnerId(), rightNames(cabinetRights), c.getRetentionPolicyId()), nodes);
     }
 
     @Transactional
@@ -267,7 +267,7 @@ public class TaxonomyService {
 
     private CabinetView view(AppUserDetails caller, Cabinet c) {
         return new CabinetView(c.getId(), c.getName(), c.getDescription(), c.getVisibility(), c.getOwnerId(),
-                rightNames(access.onCabinet(caller, c)));
+                rightNames(access.onCabinet(caller, c)), c.getRetentionPolicyId());
     }
 
     private FolderView folderView(AppUserDetails caller, Folder f) {
