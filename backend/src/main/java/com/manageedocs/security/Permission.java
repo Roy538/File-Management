@@ -39,6 +39,12 @@ public enum Permission {
     /** Force-release another user's check-out lock. */
     DOCUMENTS_LOCK_OVERRIDE("documents:lock_override"),
 
+    // Workflows
+    /** Define, revise and deactivate approval workflows; cancel any review. */
+    WORKFLOWS_MANAGE("workflows:manage"),
+    /** Submit documents for review and act on assigned review tasks. */
+    WORKFLOWS_PARTICIPATE("workflows:participate"),
+
     // Governance
     /** Define retention policies, assign them, and approve or cancel disposition (destruction) runs. */
     RETENTION_MANAGE("retention:manage"),

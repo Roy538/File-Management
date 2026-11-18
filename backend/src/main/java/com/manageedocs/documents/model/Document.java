@@ -131,6 +131,39 @@ public class Document extends TenantScopedEntity {
         unlock();
     }
 
+    // ── Review lifecycle (driven by the workflow engine) ──
+
+    public void submitForReview() {
+        if (status == Status.UNDER_REVIEW || status == Status.ARCHIVED) {
+            throw new IllegalStateException("A document that is " + status + " cannot be submitted for review");
+        }
+        this.status = Status.UNDER_REVIEW;
+        unlock();
+    }
+
+    public void markApproved() {
+        requireStatus(Status.UNDER_REVIEW);
+        this.status = Status.APPROVED;
+    }
+
+    /** Rejected, changes requested, or review cancelled: back to the author. */
+    public void returnToDraft() {
+        if (status == Status.UNDER_REVIEW) this.status = Status.DRAFT;
+    }
+
+    public void publish() {
+        requireStatus(Status.APPROVED);
+        this.status = Status.PUBLISHED;
+    }
+
+    public boolean isUnderReview() {
+        return status == Status.UNDER_REVIEW;
+    }
+
+    private void requireStatus(Status expected) {
+        if (status != expected) throw new IllegalStateException("Document is " + status + "; expected " + expected);
+    }
+
     /** Retention ARCHIVE: the document becomes read-only; content stays retrievable. */
     public void archive(Instant at) {
         this.status = Status.ARCHIVED;

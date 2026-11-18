@@ -10,6 +10,8 @@ manageedocs:
     orphan-age: PT0S                 # sweep is only ever invoked explicitly in tests
   retention:
     scheduler-enabled: false         # tests call DispositionService.evaluate directly
+  workflows:
+    scheduler-enabled: false         # tests call WorkflowEngine.escalateOverdue directly
 management:
   server:
     port: 0

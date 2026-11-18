@@ -11,4 +11,6 @@ import java.util.UUID;
 public interface UserRepository extends JpaRepository<User, UUID> {
 
     Optional<User> findByEmail(String normalizedEmail);
+
+    java.util.List<User> findByRoleAndActiveTrue(com.manageedocs.identity.model.Role role);
 }

@@ -414,6 +414,10 @@ public class DocumentService {
         if (doc.isArchived()) {
             throw ApiException.conflict("ARCHIVED", "This document is archived and can no longer be changed");
         }
+        // Reviewers must approve exactly what they saw: content and metadata are frozen during review.
+        if (doc.isUnderReview()) {
+            throw ApiException.conflict("UNDER_REVIEW", "This document is under review and cannot be changed until the review ends");
+        }
     }
 
     private void ensureNotLockedByOther(Document doc, AppUserDetails caller) {

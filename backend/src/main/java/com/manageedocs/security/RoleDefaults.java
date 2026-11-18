@@ -21,10 +21,12 @@ public final class RoleDefaults {
             Role.OFFICER, EnumSet.of(
                     TENANT_USERS_VIEW,
                     CABINETS_VIEW, CABINETS_MANAGE,
-                    DOCUMENTS_VIEW, DOCUMENTS_DOWNLOAD, DOCUMENTS_UPLOAD, DOCUMENTS_EDIT),
+                    DOCUMENTS_VIEW, DOCUMENTS_DOWNLOAD, DOCUMENTS_UPLOAD, DOCUMENTS_EDIT,
+                    WORKFLOWS_PARTICIPATE),
             Role.DEPT_USER, EnumSet.of(
                     CABINETS_VIEW,
-                    DOCUMENTS_VIEW, DOCUMENTS_DOWNLOAD)
+                    DOCUMENTS_VIEW, DOCUMENTS_DOWNLOAD,
+                    WORKFLOWS_PARTICIPATE)
     );
 
     private RoleDefaults() {

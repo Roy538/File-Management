@@ -2,7 +2,7 @@
 
 The target backend for ManageEDocs: a Java 21 / Spring Boot 4.0 modular monolith on MySQL 8.4, with Flyway owning the schema and S3/MinIO holding document binaries. It follows the conventions of the owner's reference platform (`BulkSMS` backend) where they fit a DMS. See *Conventions* below.
 
-> Status: **Phase 3 core document management.** The NestJS app in `apps/api` remains the production system until cutover (ADR-001/002).
+> Status: **Phase 4 governance and automation.** The NestJS app in `apps/api` remains the production system until cutover (ADR-001/002).
 
 ## Layout
 
@@ -20,7 +20,12 @@ com.manageedocs
 ├── taxonomy/      cabinets → folders (materialised path) → sub-dividers; document types + metadata schemas
 ├── documents/     documents, immutable versions, metadata values, check-out locks, upload/download
 ├── sharing/       access grants on cabinets/folders/documents
-└── storage/       StoragePort + S3StorageAdapter (presigned downloads)
+├── storage/       StoragePort + S3StorageAdapter (presigned downloads), OrphanObjectSweeper
+├── processing/    job queue (outbox), SKIP LOCKED worker, ClamAV scanner port, Tika text extraction
+├── search/        FULLTEXT search with in-query permission filtering, facets, snippets
+├── retention/     retention policies, legal holds, disposition runs (approval-gated destruction)
+├── workflows/     versioned approval workflows, tasks, delegation, escalation, history
+└── notifications/ in-app inbox
 ```
 
 Each feature module uses `controller/ dto/ model/ repository/ service/`. ArchUnit enforces that controllers never touch repositories, that entities never leak into API contracts, and that repositories live in `repository` packages.
@@ -60,6 +65,12 @@ Grants (`/api/v1/access/...`) add rights on a cabinet, a folder (inherited by ev
 | Document types | `GET/POST /document-types` (with metadata field schema), `DELETE /document-types/{id}` |
 | Documents | `GET /documents?folderId=&subDividerId=&q=&page=&size=`, `POST /documents` (multipart), `GET`/`PUT`/`DELETE /documents/{id}`, `POST /documents/{id}/versions`, `POST /documents/{id}/versions/{n}/restore`, `GET /documents/{id}/content-url?version=&inline=`, `POST /documents/{id}/checkout`, `POST /documents/{id}/release` |
 | Access | `GET/POST /access/{cabinets\|folders\|documents}/{id}`, `DELETE /access/grants/{grantId}` |
+| Search | `GET /search?q=&cabinetId=&folderId=&documentTypeId=&status=&ownerId=&updatedFrom=&updatedTo=&page=&size=` (results + facets + highlighted snippets) |
+| Processing | `GET /documents/{id}/processing`, `POST /documents/{id}/reprocess`, `POST /processing/reindex`, `GET /processing/stats` |
+| Retention | `GET/POST /retention/policies`, `DELETE /retention/policies/{id}`, `PUT /retention/cabinets/{id}/policy`, `PUT /retention/document-types/{id}/policy`, `GET /retention/due?withinDays=`, `POST /retention/evaluate`, `GET /retention/runs`, `GET /retention/runs/{id}`, `POST /retention/runs/{id}/approve`, `POST /retention/runs/{id}/cancel` |
+| Legal holds | `GET/POST /legal-holds`, `GET /legal-holds/{id}`, `POST /legal-holds/{id}/documents` (ids or folder subtree), `DELETE /legal-holds/{id}/documents/{docId}`, `POST /legal-holds/{id}/release` |
+| Workflows | `GET/POST /workflows`, `GET/PUT/DELETE /workflows/{id}` (PUT = new version), `POST/GET /documents/{id}/reviews`, `GET /reviews/{id}`, `POST /reviews/{id}/resubmit`, `POST /reviews/{id}/cancel`, `GET /tasks`, `POST /tasks/{id}/decision`, `POST /tasks/{id}/delegate`, `POST /documents/{id}/publish` |
+| Notifications | `GET /notifications?unreadOnly=`, `GET /notifications/unread-count`, `POST /notifications/{id}/read`, `POST /notifications/read-all` |
 
 All paths are prefixed with `/api/v1`. OpenAPI: `/api/v1/openapi`, Swagger UI: `/api/v1/docs`.
 
@@ -70,7 +81,10 @@ All paths are prefixed with `/api/v1`. OpenAPI: `/api/v1/openapi`, Swagger UI: `
 - **Check-out locks** expire (`DOCUMENT_LOCK_DURATION`). Others get 409 while one is held. An admin override needs `DOCUMENTS_LOCK_OVERRIDE` and is audited.
 - **Downloads** are presigned links valid for 5 minutes (`STORAGE_DOWNLOAD_TTL`), issued only after the rights check and audited.
 - **Duplicates:** byte-identical content already visible to the uploader is reported on upload.
-- **Not yet:** malware scanning, text extraction and indexing (Phase 4 pipeline; versions stay `STORED` until then), retention and legal hold on delete (Phase 4), and the orphan-object reconciliation sweep (Phase 4).
+- **Processing:** every new version is queued in the same transaction (outbox). A worker claims it with `FOR UPDATE SKIP LOCKED` (safe across replicas), scans it (ClamAV via `CLAMAV_HOST`; otherwise recorded as `SKIPPED`, never as clean) and extracts its text (Tika). The version then becomes `AVAILABLE`, `QUARANTINED` or, after retries, `FAILED`. Only `AVAILABLE` versions can be downloaded.
+- **Retention:** ARCHIVE runs automatically and makes the document read-only. DESTROY is only *proposed*: a records manager approves the run, every item is re-checked against holds and policy at execution, and binaries are purged while the row and each version's SHA-256 stay as evidence.
+- **Legal holds** block deletion and destruction (not archival) until released with a reason.
+- **Reviews:** content is frozen while under review. Submitters can never decide their own review. Requesting changes needs a new version before resubmitting. Overdue tasks escalate once to assignees and administrators.
 
 ## Run locally
 
@@ -99,6 +113,9 @@ The `dev` profile seeds organisation **MC** with admin `admin@manageedocs.local`
 | `STORAGE_BUCKET`, `STORAGE_REGION`, `STORAGE_PATH_STYLE` | `manageedocs`, `us-east-1`, `true` | |
 | `STORAGE_DOWNLOAD_TTL` | `PT5M` | |
 | `DOCUMENT_MAX_BYTES`, `UPLOAD_MAX_FILE_SIZE` | 100 MB | keep both in step |
+| `CLAMAV_HOST` / `CLAMAV_PORT` | *(blank)* / `3310` | blank disables scanning (versions marked `SKIPPED`) |
+| `PROCESSING_POLLER_ENABLED`, `PROCESSING_BATCH_SIZE`, `PROCESSING_MAX_ATTEMPTS`, `PROCESSING_RETRY_BASE`, `PROCESSING_CLAIM_TIMEOUT` | `true`, `10`, `5`, `PT30S`, `PT10M` | |
+| `STORAGE_ORPHAN_AGE` | `PT1H` | objects with no version row older than this are swept daily |
 | `DOCUMENT_LOCK_DURATION` | `PT8H` | |
 | `MANAGEMENT_PORT` | `8079` | never expose publicly |
 
@@ -113,5 +130,8 @@ mvn verify    # + integration tests on real MySQL 8.4 and MinIO via Testcontaine
 |---|---|
 | `AuthFlowIT` | login, generic failures, lockout, same email in two organisations, refresh rotation and reuse detection, anti-CSRF header, logout, audit chain |
 | `DocumentFlowIT` | directive scenarios A, B, C, D, F: exact-bytes round trip through MinIO, spoofed files rejected, duplicates, department users read-only, private cabinets invisible until shared, denials audited, versions and restore, check-out conflicts and admin override, stale-write rejection, metadata schema validation, cross-cabinet folder moves, guarded deletes, revocation on deactivation and on capability deny |
-| `EnumConstraintIT` | every enum value is accepted by its CHECK constraint |
+| `ProcessingAndSearchIT` | scan, extract and index, then find by body text with snippet offsets. Also covers: no download before scan, quarantine, scanner outage retried then dead-lettered then reprocessed (scenario H), search never leaking across permissions or organisations, concurrent workers claiming each job exactly once, orphan sweep |
+| `RetentionAndLegalHoldIT` | scenario G: auto-archive (type policy beats cabinet policy), destruction only after approval, holds placed before and after the proposal, binaries really purged, hold blocks manual delete until released, cancelled runs, folder-subtree holds |
+| `WorkflowIT` | scenario E: submit, frozen content, request changes, resubmit after a new version, escalation, ALL-mode step with delegation, approve, publish. Also: segregation of duties, definition versioning, reject, cross-organisation isolation, private inboxes |
+| `EnumConstraintIT` | every enum value (17 enums) is accepted by its CHECK constraint |
 | unit | access rules, file inspection, folder paths, audit hashing, lockout, UUIDv7 |
