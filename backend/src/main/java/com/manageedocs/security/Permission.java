@@ -51,6 +51,18 @@ public enum Permission {
     /** Place and release legal holds. */
     LEGAL_HOLD_MANAGE("legal_holds:manage"),
 
+    // Physical records (paper file registry)
+    /** See the file registry, loans, history and requests. */
+    RECORDS_VIEW("records:read"),
+    /** Register files, edit them, relocate, archive, flag missing and recover. */
+    RECORDS_MANAGE("records:manage"),
+    /** Lend files out, record returns, and approve or reject borrowing requests. */
+    RECORDS_DISPATCH("records:dispatch"),
+    /** Ask the registry to lend a file. */
+    RECORDS_REQUEST("records:request"),
+    /** Run and export registry reports. */
+    REPORTS_VIEW("reports:read"),
+
     // Operations
     /** Inspect the processing pipeline, reprocess documents, rebuild the search index. */
     PROCESSING_MANAGE("processing:manage");

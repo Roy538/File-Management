@@ -106,6 +106,25 @@
       <version>${tika.version}</version>
     </dependency>
 
+    <!-- Report exports (Excel, PDF). Same versions Tika already brings in; declared because we use them directly. -->
+    <dependency>
+      <groupId>org.apache.poi</groupId>
+      <artifactId>poi-ooxml</artifactId>
+      <version>5.5.1</version>
+      <!-- Tika already ships the complete OOXML schemas (poi-ooxml-full); the "lite" subset would duplicate them. -->
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.poi</groupId>
+          <artifactId>poi-ooxml-lite</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.pdfbox</groupId>
+      <artifactId>pdfbox</artifactId>
+      <version>3.0.8</version>
+    </dependency>
+
     <!-- Operations -->
     <dependency>
       <groupId>org.springframework.boot</groupId>

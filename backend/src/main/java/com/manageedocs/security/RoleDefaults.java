@@ -22,11 +22,13 @@ public final class RoleDefaults {
                     TENANT_USERS_VIEW,
                     CABINETS_VIEW, CABINETS_MANAGE,
                     DOCUMENTS_VIEW, DOCUMENTS_DOWNLOAD, DOCUMENTS_UPLOAD, DOCUMENTS_EDIT,
-                    WORKFLOWS_PARTICIPATE),
+                    WORKFLOWS_PARTICIPATE,
+                    RECORDS_VIEW, RECORDS_MANAGE, RECORDS_DISPATCH, RECORDS_REQUEST, REPORTS_VIEW),
             Role.DEPT_USER, EnumSet.of(
                     CABINETS_VIEW,
                     DOCUMENTS_VIEW, DOCUMENTS_DOWNLOAD,
-                    WORKFLOWS_PARTICIPATE)
+                    WORKFLOWS_PARTICIPATE,
+                    RECORDS_VIEW, RECORDS_REQUEST)
     );
 
     private RoleDefaults() {

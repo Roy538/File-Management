@@ -12,6 +12,8 @@ manageedocs:
     scheduler-enabled: false         # tests call DispositionService.evaluate directly
   workflows:
     scheduler-enabled: false         # tests call WorkflowEngine.escalateOverdue directly
+  records:
+    overdue-check-enabled: false     # tests call OverdueLoanService.notifyOverdue directly
 management:
   server:
     port: 0

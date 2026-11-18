@@ -45,7 +45,11 @@ class EnumConstraintIT extends MySqlIntegrationTest {
             Map.entry("ck_disposition_item_outcome", com.manageedocs.retention.model.DispositionItem.Outcome.class),
             Map.entry("ck_workflow_step_mode", com.manageedocs.workflows.model.WorkflowStep.Mode.class),
             Map.entry("ck_workflow_instance_status", com.manageedocs.workflows.model.WorkflowInstance.Status.class),
-            Map.entry("ck_workflow_task_status", com.manageedocs.workflows.model.WorkflowTask.Status.class));
+            Map.entry("ck_workflow_task_status", com.manageedocs.workflows.model.WorkflowTask.Status.class),
+            Map.entry("ck_physical_file_status", com.manageedocs.records.model.PhysicalFile.Status.class),
+            Map.entry("ck_file_dispatch_condition", com.manageedocs.records.model.FileDispatch.Condition.class),
+            Map.entry("ck_file_movement_action", com.manageedocs.records.model.FileMovement.Action.class),
+            Map.entry("ck_file_request_status", com.manageedocs.records.model.FileRequest.Status.class));
 
     @Test
     void everyEnumConstantIsAcceptedByItsCheckConstraint() {

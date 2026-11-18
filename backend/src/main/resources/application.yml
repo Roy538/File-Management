@@ -110,6 +110,11 @@ manageedocs:
     clamav-port: ${CLAMAV_PORT:3310}
     clamav-timeout: ${CLAMAV_TIMEOUT:PT60S}
     orphan-age: ${STORAGE_ORPHAN_AGE:PT1H}
+  records:
+    # Day boundaries for "today's dispatches", due dates and monthly reports.
+    time-zone: ${RECORDS_TIME_ZONE:Africa/Nairobi}
+    overdue-check-enabled: ${RECORDS_OVERDUE_CHECK_ENABLED:true}
+    overdue-cron: ${RECORDS_OVERDUE_CRON:0 0 8 * * *}
 
 logging:
   pattern:
