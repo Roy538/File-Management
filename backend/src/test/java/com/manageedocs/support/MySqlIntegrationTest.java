@@ -3,7 +3,7 @@ package com.manageedocs.support;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.ActiveProfiles;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.mysql.MySQLContainer;
@@ -15,10 +15,7 @@ import org.testcontainers.mysql.MySQLContainer;
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
-@TestPropertySource(properties = {
-        "manageedocs.security.refresh-cookie-secure=false",
-        "manageedocs.security.jwt-secret=test-secret-0123456789abcdef0123456789abcdef"
-})
+@ActiveProfiles("test")
 public abstract class MySqlIntegrationTest {
 
     @Container

@@ -1,0 +1,8 @@
+# Tests run against Testcontainers MySQL (support/MySqlIntegrationTest); no .env import.
+manageedocs:
+  security:
+    jwt-secret: test-secret-0123456789abcdef0123456789abcdef
+    refresh-cookie-secure: false
+management:
+  server:
+    port: 0

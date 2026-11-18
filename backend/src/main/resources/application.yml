@@ -1,5 +1,15 @@
 # All environment-specific values come from environment variables (CLAUDE.md §1.10).
-# Defaults below are safe for local development only; production MUST override secrets.
+# Profiles: dev (local), prod, test. Defaults here are shared; secrets have no usable default.
+#
+# Load ./.env (KEY=VALUE) when present so local runs need no exported variables. Real environment
+# variables still win (higher precedence). Never under the test profile: tests must not depend on
+# whose laptop they ran on.
+spring:
+  config:
+    activate:
+      on-profile: "!test"
+    import: "optional:file:./.env[.properties]"
+---
 spring:
   application:
     name: manageedocs
@@ -30,7 +40,8 @@ spring:
         order_inserts: true
   flyway:
     enabled: true
-    locations: classpath:db/migration
+    # Vendor-partitioned like the reference platform; MySQL is the only supported engine today.
+    locations: classpath:db/migration/{vendor}
     validate-on-migrate: true
   servlet:
     multipart:
@@ -46,6 +57,9 @@ server:
     include-message: never
 
 management:
+  server:
+    # Health/metrics off the public port (reference platform convention).
+    port: ${MANAGEMENT_PORT:8079}
   endpoints:
     web:
       exposure:
@@ -76,11 +90,3 @@ manageedocs:
 logging:
   pattern:
     correlation: "[%X{correlationId:-}] "
----
-spring:
-  config:
-    activate:
-      on-profile: dev
-manageedocs:
-  security:
-    refresh-cookie-secure: false

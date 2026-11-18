@@ -1,0 +1,7 @@
+# Local development. Seeds organisation MC + an admin (DevDataSeeder); plain-HTTP refresh cookie.
+manageedocs:
+  security:
+    refresh-cookie-secure: false
+logging:
+  level:
+    com.manageedocs: DEBUG

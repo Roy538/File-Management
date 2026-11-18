@@ -1,0 +1,8 @@
+# Production. Every secret MUST come from the environment; startup fails if JWT_SECRET is unset.
+manageedocs:
+  security:
+    jwt-secret: ${JWT_SECRET}
+    refresh-cookie-secure: true
+springdoc:
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:false}

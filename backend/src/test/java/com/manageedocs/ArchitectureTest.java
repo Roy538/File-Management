@@ -30,8 +30,14 @@ class ArchitectureTest {
             .because("API contracts are DTOs, never JPA entities");
 
     @ArchTest
-    static final ArchRule domainDoesNotDependOnWeb = noClasses()
-            .that().resideInAPackage("..domain..")
-            .should().dependOnClassesThat().resideInAnyPackage("..api..", "org.springframework.web..")
-            .because("the domain must not know about HTTP");
+    static final ArchRule modelDoesNotDependOnWebLayer = noClasses()
+            .that().resideInAPackage("..model..")
+            .should().dependOnClassesThat().resideInAnyPackage("..controller..", "..dto..", "org.springframework.web..")
+            .because("entities must not know about HTTP or API contracts");
+
+    @ArchTest
+    static final ArchRule repositoriesOnlyInRepositoryPackages = com.tngtech.archunit.lang.syntax.ArchRuleDefinition.classes()
+            .that().areAssignableTo(Repository.class).and().areInterfaces()
+            .should().resideInAPackage("..repository..")
+            .because("layout: <module>/{controller,dto,model,repository,service}");
 }

@@ -2,7 +2,7 @@ package com.manageedocs.tenancy;
 
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.jwt.Jwt;
+import com.manageedocs.security.AppUserDetails;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -13,7 +13,8 @@ import java.util.concurrent.Callable;
  * <ol>
  *   <li>An explicit, code-controlled override ({@link #callAs}) — used by login, token refresh,
  *       and background jobs that know which tenant they are processing.</li>
- *   <li>The {@code tid} claim of the authenticated JWT.</li>
+ *   <li>The authenticated caller, whose tenant came from the verified JWT {@code tid} claim
+ *       and was re-checked against the database for this request.</li>
  * </ol>
  * Request parameters, headers and bodies are never consulted (ADR-004).
  */
@@ -34,11 +35,8 @@ public final class TenantContext {
             return Optional.of(override);
         }
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null && auth.getPrincipal() instanceof Jwt jwt) {
-            String tid = jwt.getClaimAsString(TENANT_CLAIM);
-            if (tid != null) {
-                return Optional.of(UUID.fromString(tid));
-            }
+        if (auth != null && auth.getPrincipal() instanceof AppUserDetails caller) {
+            return Optional.of(caller.tenantId());
         }
         return Optional.empty();
     }

@@ -21,7 +21,20 @@
     <java.version>21</java.version>
     <springdoc.version>3.0.3</springdoc.version>
     <archunit.version>1.5.1</archunit.version>
+    <awssdk.version>2.59.3</awssdk.version>
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>software.amazon.awssdk</groupId>
+        <artifactId>bom</artifactId>
+        <version>${awssdk.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <!-- Web / API -->
@@ -68,6 +81,18 @@
       <scope>runtime</scope>
     </dependency>
 
+    <!-- Object storage (S3 / MinIO) — ADR-006. Netty client excluded: we use the sync Apache client. -->
+    <dependency>
+      <groupId>software.amazon.awssdk</groupId>
+      <artifactId>s3</artifactId>
+      <exclusions>
+        <exclusion>
+          <groupId>software.amazon.awssdk</groupId>
+          <artifactId>netty-nio-client</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
     <!-- Operations -->
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -103,6 +128,11 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers-junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>testcontainers-minio</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

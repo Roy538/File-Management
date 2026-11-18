@@ -1,17 +1,17 @@
 package com.manageedocs.identity;
 
 import com.jayway.jsonpath.JsonPath;
-import com.manageedocs.audit.application.AuditService;
-import com.manageedocs.audit.domain.AuditEvent;
-import com.manageedocs.audit.domain.AuditOutcome;
-import com.manageedocs.audit.domain.AuditEventRepository;
-import com.manageedocs.identity.domain.User;
-import com.manageedocs.identity.domain.UserRepository;
+import com.manageedocs.audit.service.AuditService;
+import com.manageedocs.audit.model.AuditEvent;
+import com.manageedocs.audit.model.AuditOutcome;
+import com.manageedocs.audit.repository.AuditEventRepository;
+import com.manageedocs.identity.model.User;
+import com.manageedocs.identity.repository.UserRepository;
 import com.manageedocs.support.MySqlIntegrationTest;
 import com.manageedocs.tenancy.TenantContext;
-import com.manageedocs.tenancy.application.TenantProvisioningService;
-import com.manageedocs.tenancy.application.TenantProvisioningService.AdminSpec;
-import com.manageedocs.tenancy.domain.Tenant;
+import com.manageedocs.tenancy.service.TenantProvisioningService;
+import com.manageedocs.tenancy.service.TenantProvisioningService.AdminSpec;
+import com.manageedocs.tenancy.model.Tenant;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -80,17 +80,22 @@ class AuthFlowIT extends MySqlIntegrationTest {
         assertThat(body).doesNotContain(cookie.getValue());          // refresh token never in the body
         assertThat(body).doesNotContain("passwordHash").doesNotContain("$2a$");
 
-        String token = JsonPath.read(body, "$.accessToken");
+        String token = JsonPath.read(body, "$.data.accessToken");
         mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.email").value(EMAIL))
-                .andExpect(jsonPath("$.organisation.code").value(alpha.getCode()))
-                .andExpect(jsonPath("$.role").value("ADMIN"));
+                .andExpect(jsonPath("$.data.email").value(EMAIL))
+                .andExpect(jsonPath("$.data.organisation.code").value(alpha.getCode()))
+                .andExpect(jsonPath("$.data.role").value("ADMIN"))
+                .andExpect(jsonPath("$.successful").value(true))
+                .andExpect(jsonPath("$.data.permissions").value(org.hamcrest.Matchers.hasItem("documents:upload")))
+                .andExpect(jsonPath("$.data.permissions").value(org.hamcrest.Matchers.not(org.hamcrest.Matchers.hasItem("platform_tenants:manage"))));
     }
 
     @Test
     void protectedEndpointsRequireAValidToken() throws Exception {
-        mvc.perform(get("/api/v1/auth/me")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/api/v1/auth/me")).andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.successful").value(false))
+                .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
         mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer not-a-jwt")).andExpect(status().isUnauthorized());
     }
 
@@ -100,7 +105,7 @@ class AuthFlowIT extends MySqlIntegrationTest {
         String badPw = login(alpha.getCode(), EMAIL, "wrong-password-123", 401).getResponse().getContentAsString();
         String unknownUser = login(alpha.getCode(), "ghost@example.com", ALPHA_PW, 401).getResponse().getContentAsString();
         for (String b : List.of(unknownOrg, badPw, unknownUser)) {
-            assertThat((String) JsonPath.read(b, "$.detail")).isEqualTo("Invalid organisation, email or password");
+            assertThat((String) JsonPath.read(b, "$.message")).isEqualTo("Invalid organisation, email or password");
         }
         for (int i = 0; i < 4; i++) login(alpha.getCode(), EMAIL, "wrong-password-123", 401);
         // Five failures reached: even the correct password is refused while locked.
@@ -112,10 +117,10 @@ class AuthFlowIT extends MySqlIntegrationTest {
     @Test
     void tenantsAreIsolatedEvenWithTheSameEmail() throws Exception {
         login(beta.getCode(), EMAIL, ALPHA_PW, 401);   // Alpha's password does not open Beta
-        String betaToken = JsonPath.read(login(beta.getCode(), EMAIL, BETA_PW, 200).getResponse().getContentAsString(), "$.accessToken");
+        String betaToken = JsonPath.read(login(beta.getCode(), EMAIL, BETA_PW, 200).getResponse().getContentAsString(), "$.data.accessToken");
         mvc.perform(get("/api/v1/auth/me").header("Authorization", "Bearer " + betaToken))
-                .andExpect(jsonPath("$.firstName").value("Ben"))
-                .andExpect(jsonPath("$.organisation.code").value(beta.getCode()));
+                .andExpect(jsonPath("$.data.fullName").value("Ben Beta"))
+                .andExpect(jsonPath("$.data.organisation.code").value(beta.getCode()));
 
         // Repository level: with Alpha pinned, Beta's rows are invisible, including by primary key.
         UUID betaUserId = TenantContext.callAs(beta.getId(), () -> tx.execute(s -> users.findByEmail(EMAIL).orElseThrow().getId()));
@@ -133,7 +138,7 @@ class AuthFlowIT extends MySqlIntegrationTest {
         MvcResult rotated = refresh(first, 200);
         Cookie second = rotated.getResponse().getCookie("med_refresh");
         assertThat(second.getValue()).isNotEqualTo(first.getValue());
-        assertThat((String) JsonPath.read(rotated.getResponse().getContentAsString(), "$.accessToken")).isNotBlank();
+        assertThat((String) JsonPath.read(rotated.getResponse().getContentAsString(), "$.data.accessToken")).isNotBlank();
 
         refresh(first, 401);    // replay of a rotated token = theft signal
         refresh(second, 401);   // ...so the legitimate successor is revoked too
@@ -153,7 +158,7 @@ class AuthFlowIT extends MySqlIntegrationTest {
     void logoutRevokesTheSession() throws Exception {
         Cookie c = login(alpha.getCode(), EMAIL, ALPHA_PW, 200).getResponse().getCookie("med_refresh");
         mvc.perform(post("/api/v1/auth/logout").header("X-Requested-With", "fetch").cookie(c))
-                .andExpect(status().isNoContent())
+                .andExpect(status().isOk())
                 .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")));
         refresh(c, 401);
     }
