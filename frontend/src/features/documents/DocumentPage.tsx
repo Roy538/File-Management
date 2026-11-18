@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react';
+import { usePeople } from '@/lib/usePeople';
 import { useNavigate, useParams } from 'react-router';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -33,6 +34,7 @@ export function DocumentPage() {
 }
 
 function DocumentView({ doc }: { doc: DocumentDetail }) {
+  const nameOf = usePeople([doc.lock?.lockedBy]);
   const [tab, setTab] = useState<Tab>('Preview');
   const [dialog, setDialog] = useState<'version' | 'review' | 'delete' | 'publish' | null>(null);
   const refresh = useRefreshDocument(doc.id);
@@ -126,7 +128,7 @@ function DocumentView({ doc }: { doc: DocumentDetail }) {
           <Banner tone="info" icon={<Lock className="size-4" />}>
             {doc.lock.byYou
               ? `You have this document checked out until ${formatDateTime(doc.lock.expiresAt)}. Others can’t change it meanwhile.`
-              : `Checked out by another user until ${formatDateTime(doc.lock.expiresAt)}. You can read it but not change it.`}
+              : `Checked out by ${nameOf(doc.lock.lockedBy) ?? 'another user'} until ${formatDateTime(doc.lock.expiresAt)}. You can read it but not change it.`}
           </Banner>
         ) : null}
       </div>

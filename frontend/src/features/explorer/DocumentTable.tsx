@@ -12,11 +12,12 @@ export function DocumentTable({ docs }: { docs: DocumentSummary[] }) {
       <table className="hidden w-full text-left text-[13.5px] md:table">
         <thead className="border-b border-rule text-[12.5px] text-muted">
           <tr>
-            <th scope="col" className="px-4 py-2 font-medium">Name</th>
-            <th scope="col" className="px-3 py-2 font-medium">Status</th>
-            <th scope="col" className="px-3 py-2 text-right font-medium">Version</th>
-            <th scope="col" className="px-3 py-2 text-right font-medium">Size</th>
-            <th scope="col" className="px-4 py-2 font-medium">Updated</th>
+            {/* Name takes all spare width (w-full); the cell's max-w-0 then lets long titles truncate. */}
+            <th scope="col" className="w-full px-4 py-2 font-medium">Name</th>
+            <th scope="col" className="whitespace-nowrap px-3 py-2 font-medium">Status</th>
+            <th scope="col" className="whitespace-nowrap px-3 py-2 text-right font-medium">Version</th>
+            <th scope="col" className="whitespace-nowrap px-3 py-2 text-right font-medium">Size</th>
+            <th scope="col" className="whitespace-nowrap px-4 py-2 font-medium">Updated</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-rule">
@@ -33,8 +34,8 @@ export function DocumentTable({ docs }: { docs: DocumentSummary[] }) {
                 {d.fileName ? <p className="truncate pl-6 text-[12px] text-subtle">{d.fileName}</p> : null}
               </td>
               <td className="px-3 py-2"><StatusBadge status={d.status} /></td>
-              <td className="px-3 py-2 text-right tabular-nums text-muted">v{d.currentVersionNo}</td>
-              <td className="px-3 py-2 text-right tabular-nums text-muted">{d.sizeBytes ? formatBytes(d.sizeBytes) : '—'}</td>
+              <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-muted">v{d.currentVersionNo}</td>
+              <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums text-muted">{d.sizeBytes ? formatBytes(d.sizeBytes) : '—'}</td>
               <td className="whitespace-nowrap px-4 py-2 text-muted" title={formatDateTime(d.updatedAt)}>{formatRelative(d.updatedAt)}</td>
             </tr>
           ))}

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePeople } from '@/lib/usePeople';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { useForm } from 'react-hook-form';
@@ -156,7 +157,7 @@ function DetailsForm({ doc, onDone }: { doc: DocumentDetail; onDone: (saved: boo
 // ── Versions ──────────────────────────────────────────────────────────────
 
 export function VersionsPanel({ doc, onChanged }: { doc: DocumentDetail; onChanged: () => Promise<unknown> }) {
-  const me = useSession((s) => s.user?.id);
+  const nameOf = usePeople(doc.versions.map((v) => v.createdBy));
   const [restoring, setRestoring] = useState<VersionView | null>(null);
   const canDownload = doc.rights.includes('download');
   return (
@@ -188,7 +189,7 @@ export function VersionsPanel({ doc, onChanged }: { doc: DocumentDetail; onChang
               </td>
               <td className="whitespace-nowrap px-3 py-2.5 align-top text-muted">
                 {formatDateTime(v.createdAt)}
-                {v.createdBy === me ? <span className="block text-[12px]">by you</span> : null}
+                {nameOf(v.createdBy) ? <span className="block text-[12px]">by {nameOf(v.createdBy)}</span> : null}
               </td>
               <td className="px-4 py-2.5 text-right align-top">
                 <div className="flex justify-end gap-1">
@@ -247,12 +248,15 @@ export function ReviewsPanel({ doc, onChanged }: { doc: DocumentDetail; onChange
   const reviews = useQuery({ queryKey: ['document', doc.id, 'reviews', doc.status], queryFn: () => api.get<ReviewView[]>(`/documents/${doc.id}/reviews`) });
   const [action, setAction] = useState<{ kind: 'resubmit' | 'cancel'; review: ReviewView } | null>(null);
   const refresh = async () => { await Promise.all([reviews.refetch(), onChanged()]); };
+  const nameOf = usePeople((reviews.data ?? []).flatMap((r) => [
+    r.initiatedBy, ...r.history.map((e) => e.actorId), ...r.tasks.map((t) => t.assigneeUserId),
+  ]));
 
   if (reviews.isLoading) return <SkeletonRows rows={3} cols={3} />;
   if (reviews.isError) return <ErrorState error={reviews.error} onRetry={() => reviews.refetch()} compact />;
   if (!reviews.data?.length) return <EmptyState icon={<History className="size-6" />} title="Not reviewed yet">When this document is submitted for review, each decision is recorded here.</EmptyState>;
 
-  const actor = (id: string | null) => (id === null ? 'automatically' : id === user?.id ? 'by you' : null);
+  const actor = (id: string | null) => (id === null ? 'automatically' : nameOf(id) ? `by ${nameOf(id)}` : null);
 
   return (
     <div className="divide-y divide-rule">
@@ -275,7 +279,7 @@ export function ReviewsPanel({ doc, onChanged }: { doc: DocumentDetail; onChange
                   <li key={t.id} className="flex flex-wrap gap-x-2">
                     <span className="font-medium">{t.stepName}:</span>
                     <span className="text-muted">
-                      waiting for {t.assigneeUserId === user?.id ? 'you' : t.assigneeRole ? `any ${roleLabel(t.assigneeRole, true)}` : 'a named reviewer'}
+                      waiting for {t.assigneeUserId ? (nameOf(t.assigneeUserId) ?? 'a named reviewer') : t.assigneeRole ? `any ${roleLabel(t.assigneeRole, true)}` : 'a named reviewer'}
                       {t.dueAt ? `, due ${formatDateTime(t.dueAt)}` : ''}
                     </span>
                     {t.overdue ? <span className="text-danger">Overdue</span> : null}

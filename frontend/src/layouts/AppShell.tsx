@@ -120,7 +120,10 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
         </span>
       </Link>
 
-      <form onSubmit={submit} role="search" className="ml-auto flex max-w-md flex-1 items-center">
+      <Link to="/search" className="ml-auto rounded-md p-2 hover:bg-white/10 sm:hidden" aria-label="Search documents">
+        <Search className="size-5" />
+      </Link>
+      <form onSubmit={submit} role="search" className="ml-auto hidden max-w-md flex-1 items-center sm:flex">
         <label htmlFor="quick-search" className="sr-only">Search documents</label>
         <div className="relative w-full">
           <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-white/60" aria-hidden />
@@ -135,9 +138,9 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
       </form>
 
       {canUpload ? (
-        <Button variant="onNavy" size="md" icon={<Upload className="size-4" />} onClick={() => openUpload()} className="hidden sm:inline-flex">
-          Upload
-        </Button>
+        <span className="hidden sm:block">
+          <Button variant="onNavy" size="md" icon={<Upload className="size-4" />} onClick={() => openUpload()}>Upload</Button>
+        </span>
       ) : null}
 
       <NotificationBell />

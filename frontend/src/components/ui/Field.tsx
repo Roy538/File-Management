@@ -2,7 +2,7 @@ import { forwardRef, useId, type InputHTMLAttributes, type ReactNode, type Selec
 import { cn } from '@/lib/cn';
 
 const control =
-  'w-full rounded-md border border-rule-strong bg-surface px-3 text-sm text-ink placeholder:text-subtle ' +
+  'rounded-md border border-rule-strong bg-surface px-3 text-sm text-ink placeholder:text-subtle ' +
   'hover:border-navy-700/50 focus:border-navy-700 focus:outline-none focus:ring-2 focus:ring-navy-700/20 ' +
   'disabled:bg-paper disabled:text-muted aria-[invalid=true]:border-danger';
 
@@ -31,14 +31,17 @@ export function Field({ label, hint, error, children, className }: FieldProps) {
   );
 }
 
+/** Full width unless the caller sets its own width (two width utilities would fight in CSS order). */
+const width = (className?: string) => (className && /(^|\s)w-/.test(className) ? '' : 'w-full');
+
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(function Input({ className, ...rest }, ref) {
-  return <input ref={ref} className={cn(control, 'h-9', className)} {...rest} />;
+  return <input ref={ref} className={cn(control, width(className), 'h-9', className)} {...rest} />;
 });
 
 export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<HTMLTextAreaElement>>(function Textarea({ className, ...rest }, ref) {
-  return <textarea ref={ref} className={cn(control, 'min-h-20 py-2', className)} {...rest} />;
+  return <textarea ref={ref} className={cn(control, width(className), 'min-h-20 py-2', className)} {...rest} />;
 });
 
 export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSelectElement>>(function Select({ className, ...rest }, ref) {
-  return <select ref={ref} className={cn(control, 'h-9 pr-8', className)} {...rest} />;
+  return <select ref={ref} className={cn(control, width(className), 'h-9 pr-8', className)} {...rest} />;
 });

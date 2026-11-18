@@ -21,11 +21,12 @@ import { DocumentTable } from './DocumentTable';
 import { CreateCabinetDialog, NameDialog } from './StructureDialogs';
 import { useUploadDialog } from './uploadStore';
 
-const SCOPES: { value: Visibility | null; label: string }[] = [
-  { value: null, label: 'All' },
-  { value: 'DEFAULT', label: 'Organisation' },
-  { value: 'PRIVATE', label: 'Private' },
-  { value: 'PERSONAL', label: 'Personal' },
+// Short labels must fit four-across in the cabinet pane; the tooltip carries the full meaning.
+const SCOPES: { value: Visibility | null; label: string; hint: string }[] = [
+  { value: null, label: 'All', hint: 'Every cabinet you can open' },
+  { value: 'DEFAULT', label: 'Everyone', hint: 'Cabinets everyone in your organisation can see' },
+  { value: 'PRIVATE', label: 'Private', hint: 'Cabinets shared only with specific people or roles' },
+  { value: 'PERSONAL', label: 'Personal', hint: 'Your own cabinets' },
 ];
 const PAGE_SIZE = 25;
 
@@ -130,7 +131,8 @@ export function ExplorerPage() {
         ) : null}
       />
 
-      <div className="grid gap-5 lg:grid-cols-[250px_minmax(240px,300px)_1fr]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(280px,320px)_1fr]">
+        <div className="flex min-w-0 flex-col gap-5">
         {/* ── Cabinets ── */}
         <section aria-label="Cabinets" className="flex flex-col gap-3">
           <div role="radiogroup" aria-label="Which cabinets" className="grid grid-cols-4 rounded-md border border-rule bg-surface p-0.5 text-[12.5px]">
@@ -139,8 +141,9 @@ export function ExplorerPage() {
                 key={s.label}
                 role="radio"
                 aria-checked={scope === s.value}
+                title={s.hint}
                 onClick={() => update({ scope: s.value, cabinet: null, folder: null, sub: null, page: null })}
-                className={cn('rounded px-1 py-1.5', scope === s.value ? 'bg-navy-800 font-medium text-white' : 'text-muted hover:text-ink')}
+                className={cn('min-w-0 truncate rounded px-1 py-1.5', scope === s.value ? 'bg-navy-800 font-medium text-white' : 'text-muted hover:text-ink')}
               >
                 {s.label}
               </button>
@@ -158,7 +161,7 @@ export function ExplorerPage() {
                   {cabinetFilter ? 'Try another name.' : canManageCabinets ? 'Create a cabinet to start filing.' : 'Nothing has been shared with you in this view.'}
                 </EmptyState>
               ) : (
-                <ul className="max-h-[60vh] overflow-y-auto p-1">
+                <ul className={cn('overflow-y-auto p-1', cabinetId ? 'max-h-[30vh]' : 'max-h-[60vh]')}>
                   {visibleCabinets.map((c) => (
                     <li key={c.id}>
                       <button
@@ -181,7 +184,7 @@ export function ExplorerPage() {
         <div>
           {!cabinetId ? (
             <div className="rounded-lg border border-dashed border-rule-strong bg-surface">
-              <EmptyState icon={<Archive className="size-6" />} title="Choose a cabinet">Its folders and sub-dividers appear here.</EmptyState>
+              <EmptyState icon={<Archive className="size-6" />} title="Choose a cabinet">Its folders and sub-dividers open here.</EmptyState>
             </div>
           ) : tree.isLoading ? (
             <div className="rounded-lg border border-rule bg-surface"><SkeletonRows rows={6} cols={1} /></div>
@@ -212,6 +215,7 @@ export function ExplorerPage() {
               )}
             </TabbedPanel>
           ) : null}
+        </div>
         </div>
 
         {/* ── Documents ── */}

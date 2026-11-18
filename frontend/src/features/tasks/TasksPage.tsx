@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { usePeople } from '@/lib/usePeople';
 import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useForm, useWatch } from 'react-hook-form';
@@ -20,6 +21,7 @@ import { cn } from '@/lib/cn';
 /** Open review tasks assigned to me, directly or through my role. */
 export function TasksPage() {
   const tasks = useQuery({ queryKey: ['tasks'], queryFn: () => api.get<TaskView[]>('/tasks') });
+  const nameOf = usePeople((tasks.data ?? []).map((t) => t.delegatedFrom));
   const canDelegate = useCan('users:read');
   const [deciding, setDeciding] = useState<TaskView | null>(null);
   const [delegating, setDelegating] = useState<TaskView | null>(null);
@@ -52,7 +54,7 @@ export function TasksPage() {
                       <Link to={`/documents/${t.documentId}`} className="doc-title text-[15px] text-ink hover:text-navy-800 hover:underline">
                         {t.documentTitle ?? 'Untitled document'}
                       </Link>
-                      {t.delegatedFrom ? <p className="text-[12.5px] text-muted">Delegated to you</p> : null}
+                      {t.delegatedFrom ? <p className="text-[12.5px] text-muted">Delegated to you{nameOf(t.delegatedFrom) ? ` by ${nameOf(t.delegatedFrom)}` : ''}</p> : null}
                       {!t.assigneeUserId && t.assigneeRole ? <p className="text-[12.5px] text-muted">For anyone with the {roleLabel(t.assigneeRole, true)} role</p> : null}
                     </td>
                     <td className="px-4 py-3 text-ink">{t.stepName}</td>

@@ -32,7 +32,7 @@ export function Dialog({ open, onOpenChange, title, description, children, foote
               <RD.Title className="doc-title text-lg text-ink">{title}</RD.Title>
               {description ? <RD.Description className="mt-0.5 text-[13px] text-muted">{description}</RD.Description> : null}
             </div>
-            <RD.Close className="rounded p-1 text-muted hover:bg-navy-50 hover:text-ink" aria-label="Close">
+            <RD.Close className="rounded p-1 text-muted hover:bg-navy-50 hover:text-ink" aria-label="Close dialog">
               <X className="size-4" />
             </RD.Close>
           </div>
