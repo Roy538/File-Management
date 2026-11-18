@@ -64,3 +64,15 @@ Format: Context → Decision → Consequences. Status: Accepted unless noted.
 
 ## ADR-015 Object-level access = baseline ∪ grants, capped by capabilities
 **Decision.** Rights on an object = baseline from cabinet visibility, role and ownership ∪ grants on the cabinet, every ancestor folder (via the materialised path) and the document, ∩ the ceiling implied by the caller's capabilities. Grants only, no deny entries; a capability DENY is the way to remove an ability. Invisible returns 404, visible but not allowed returns 403, and both are audited as `ACCESS_DENIED` from the exception handler after the request transaction has ended.
+
+## ADR-016 Processing pipeline details
+**Decision.** Use one job per document version (the unique key makes it idempotent), enqueued in the version's own transaction. Workers use READ COMMITTED: under REPEATABLE READ, concurrent SKIP LOCKED claimers deadlocked on gap locks in the status index (reproduced by `concurrentWorkersProcessEachJobExactlyOnce`). Unlike SMS sending in the reference platform, processing is idempotent, so stale RUNNING jobs are re-queued rather than marked UNKNOWN. Availability depends on the security scan, not on indexability: an extraction failure still yields AVAILABLE, while a scan failure retries and then becomes FAILED. Text extraction uses Apache Tika 3.3.3, the mature 3.x line, rather than the new 4.x major.
+
+## ADR-017 Search filters permissions in SQL
+**Decision.** Because grants only add rights, the visible set is exactly: accessible cabinets ∪ subtrees of granted folders ∪ granted documents (admins see their whole organisation). This set is applied as a predicate in the FULLTEXT query, so totals, facets, pages and snippets cannot reflect invisible documents. Snippets return character offsets, not HTML. OpenSearch stays behind the same service boundary as a future adapter.
+
+## ADR-018 Destruction requires human approval and re-validation
+**Decision.** Retention ARCHIVE is automatic. DESTROY only proposes a disposition run. At approval, every item is re-checked: it still exists, its effective policy is unchanged, it is still due, and it is not on hold. Destroyed documents keep their row and version metadata, and the audit trail records each version's SHA-256. Binaries are purged after commit, and a failed purge is retried by the orphan sweeper, which treats destroyed documents' objects as unreferenced.
+
+## ADR-019 Reviews: frozen content, segregation of duties
+**Decision.** A document under review cannot be edited, versioned, checked out or deleted. A submitter can never decide their own review. Each step's eligibility is validated at submission, so an impossible review is refused before any state changes. Requesting changes requires a new document version before resubmitting, and the review restarts at step 1.

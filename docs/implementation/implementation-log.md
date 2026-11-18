@@ -10,6 +10,7 @@ Each entry records what changed, why, how it was verified, and what remains. New
 | `docs/phase0-audit-architecture` | Phase 0 audit, target architecture, ADRs, this log, design references | `Login` |
 | `feature/springboot-backend-foundation` | New Spring Boot + MySQL backend (`backend/`), Phase 2 foundation | `Login` |
 | `feature/documents-core` | Reference-architecture alignment + Phase 3 core DMS | `feature/springboot-backend-foundation` |
+| `feature/phase4-processing-governance` | Phase 4a pipeline + search, 4b retention/legal hold, 4c workflows/notifications | `feature/documents-core` |
 
 ## 2026-11-18: Phase 0 discovery and baseline ✅
 - Audit: [initial-audit.md](initial-audit.md). Key result: the backend is NestJS/Postgres, not the mandated Spring Boot/MySQL. There are two critical cross-tenant data exposures.
@@ -25,6 +26,14 @@ Each entry records what changed, why, how it was verified, and what remains. New
 ## 2026-11-18: Phase 1 target architecture ✅
 - [system-overview.md](../architecture/system-overview.md) with context, container, module, ingestion, retrieval, auth, workflow and ER diagrams.
 - [architecture-decisions.md](../architecture/architecture-decisions.md), ADR-001 to ADR-013.
+
+## 2026-11-18: Phase 4 governance and automation ✅
+- **4a, processing and search:** a `processing_job` table serves as the outbox. The worker follows the reference platform's three-transaction pattern with SKIP LOCKED claiming. Malware scanning goes through a ClamAV port (explicit `SKIPPED` when not configured) and text extraction through Tika 3.3.3. The version lifecycle is STORED → PROCESSING → AVAILABLE | QUARANTINED | FAILED, with retries, a dead-letter state, a reaper, reprocessing and full re-indexing. Search uses MySQL FULLTEXT with permission filtering *inside* the SQL, plus facets and highlight offsets. An orphan sweeper removes unreferenced objects.
+- **4b, retention:** policies attach to a cabinet or a document type (the type wins). ARCHIVE is automatic and makes the document read-only. DESTROY is only proposed, then approved by a records manager and re-validated at execution. Legal holds cover documents or folder subtrees and block deletion and destruction.
+- **4c, workflows:** versioned definitions, ANY/ALL steps, a server-enforced state machine, frozen content during review, segregation of duties checked up front, delegation, escalation, event history, and in-app notifications.
+- **Verified:** `mvn verify` reports BUILD SUCCESS: **23 unit + 31 integration** tests (MySQL 8.4 + MinIO). Directive scenarios **A–H** are now covered (E in `WorkflowIT`, G in `RetentionAndLegalHoldIT`, H in `ProcessingAndSearchIT`). Scenario I (restart recovery) is covered at component level by the reaper and the outbox but not yet by a restart test.
+- Found by tests and fixed: worker deadlocks under REPEATABLE READ (the worker now uses READ COMMITTED with backoff, and the concurrent-claim test passed 4/4 runs); `@TenantId` is not populated in memory before insert (upload enqueues with the tenant from `TenantContext`).
+- Not done: real ClamAV and Tesseract OCR in the deployment (code paths exist, the infrastructure is not provisioned); saved searches and search history; email delivery of notifications; metadata-value filters in search.
 
 ## 2026-11-18: Alignment with the owner's reference platform ✅
 - The owner asked for the backend to follow their reference project (`BulkSMS` Spring Boot backend). Adopted: the `StandardAPIResponse`/`PagedResponse` envelope, a capability catalog with `RoleDefaults` and per-user GRANT/DENY, `PermissionGuard`, the per-request `AppUserDetails` principal with `token_version` revocation, `@PreAuthorize` on every endpoint, a `controller/dto/model/repository/service` layout per module, `db/migration/{vendor}`, the management port 8079, per-profile yml with `.env` import, and the enum vs CHECK-constraint test. Kept different, with reasons: automatic `@TenantId` filtering, UUIDv7 keys, records instead of Lombok, Testcontainers instead of H2 (ADR-014).
@@ -47,7 +56,7 @@ Each entry records what changed, why, how it was verified, and what remains. New
 |---|---|---|
 | 2 | Backend foundation: security, tenancy, identity, audit, error model, OpenAPI, Testcontainers | ✅ |
 | 3 | Taxonomy (cabinets/folders/sub-dividers/doc types/metadata), documents + versions, storage, check-in/out, permissions | ⏳ |
-| 4 | Processing pipeline (outbox/jobs), search (FULLTEXT), workflows (versioned), retention + legal hold, sharing, notifications | ⏳ |
+| 4 | Processing pipeline (outbox/jobs), search (FULLTEXT), workflows (versioned), retention + legal hold, sharing, notifications | ✅ backend |
 | 5 | Records tracking port (inventory/dispatch/returns/requests), reports, dashboard metrics, e-signature, conversion tools | ⏳ |
 | 6 | Frontend rebuild per `Images/` references: design tokens, shell, launcher, explorer, upload, viewer, admin | ⏳ |
 | 7 | Data migration Postgres → MySQL (ADR-010), hardening, e2e scenarios A–I, performance, backups | ⏳ |
