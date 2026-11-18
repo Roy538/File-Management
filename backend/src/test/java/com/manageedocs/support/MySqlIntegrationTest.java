@@ -18,7 +18,17 @@ import org.testcontainers.mysql.MySQLContainer;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@org.springframework.context.annotation.Import(MySqlIntegrationTest.TestBeans.class)
 public abstract class MySqlIntegrationTest {
+
+    @org.springframework.boot.test.context.TestConfiguration
+    static class TestBeans {
+        @org.springframework.context.annotation.Bean
+        @org.springframework.context.annotation.Primary
+        com.manageedocs.processing.service.MalwareScanner fakeScanner() {
+            return new FakeMalwareScanner();
+        }
+    }
 
     @ServiceConnection
     static final MySQLContainer MYSQL = new MySQLContainer("mysql:8.4");

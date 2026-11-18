@@ -48,6 +48,7 @@ class DocumentFlowIT extends MySqlIntegrationTest {
     @Autowired AuditEventRepository auditEvents;
     @Autowired AuditService audit;
     @Autowired TransactionTemplate tx;
+    @Autowired com.manageedocs.processing.service.ProcessingWorker worker;
 
     private Tenant alpha;
     private String admin;      // ADMIN of Alpha
@@ -366,6 +367,7 @@ class DocumentFlowIT extends MySqlIntegrationTest {
     }
 
     private String contentUrl(String token, String docId, Integer version) throws Exception {
+        worker.drain();   // binaries become downloadable only after the security scan
         return read(call(token, HttpMethod.GET, "/api/v1/documents/" + docId + "/content-url"
                 + (version == null ? "" : "?version=" + version), null, 200), "$.data.url");
     }

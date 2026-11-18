@@ -99,6 +99,13 @@ public class S3StorageAdapter implements StoragePort, ApplicationRunner, AutoClo
     }
 
     @Override
+    public java.util.stream.Stream<String> listKeys(String prefix, java.time.Instant olderThan) {
+        return s3.listObjectsV2Paginator(b -> b.bucket(props.bucket()).prefix(prefix)).contents().stream()
+                .filter(o -> o.lastModified().isBefore(olderThan))
+                .map(software.amazon.awssdk.services.s3.model.S3Object::key);
+    }
+
+    @Override
     public boolean deleteQuietly(String key) {
         try {
             s3.deleteObject(b -> b.bucket(props.bucket()).key(key));

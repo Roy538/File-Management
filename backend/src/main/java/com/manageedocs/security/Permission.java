@@ -37,7 +37,11 @@ public enum Permission {
     DOCUMENTS_EDIT("documents:edit"),
     DOCUMENTS_DELETE("documents:delete"),
     /** Force-release another user's check-out lock. */
-    DOCUMENTS_LOCK_OVERRIDE("documents:lock_override");
+    DOCUMENTS_LOCK_OVERRIDE("documents:lock_override"),
+
+    // Operations
+    /** Inspect the processing pipeline, reprocess documents, rebuild the search index. */
+    PROCESSING_MANAGE("processing:manage");
 
     private final String code;
 

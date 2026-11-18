@@ -3,6 +3,11 @@ manageedocs:
   security:
     jwt-secret: test-secret-0123456789abcdef0123456789abcdef
     refresh-cookie-secure: false
+  processing:
+    poller-enabled: false          # tests drive ProcessingWorker.drain() explicitly
+    retry-base: PT0S
+    max-attempts: 2
+    orphan-age: PT0S                 # sweep is only ever invoked explicitly in tests
 management:
   server:
     port: 0

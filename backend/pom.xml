@@ -22,6 +22,7 @@
     <springdoc.version>3.0.3</springdoc.version>
     <archunit.version>1.5.1</archunit.version>
     <awssdk.version>2.59.3</awssdk.version>
+    <tika.version>3.3.3</tika.version>
   </properties>
 
   <dependencyManagement>
@@ -91,6 +92,18 @@
           <artifactId>netty-nio-client</artifactId>
         </exclusion>
       </exclusions>
+    </dependency>
+
+    <!-- Text extraction for search (PDF, Office, text) — ADR-016. OCR activates if Tesseract is installed. -->
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-core</artifactId>
+      <version>${tika.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.tika</groupId>
+      <artifactId>tika-parsers-standard-package</artifactId>
+      <version>${tika.version}</version>
     </dependency>
 
     <!-- Operations -->

@@ -98,6 +98,18 @@ manageedocs:
   documents:
     max-file-size-bytes: ${DOCUMENT_MAX_BYTES:104857600}
     lock-duration: ${DOCUMENT_LOCK_DURATION:PT8H}
+  processing:
+    poller-enabled: ${PROCESSING_POLLER_ENABLED:true}
+    poll-interval: ${PROCESSING_POLL_INTERVAL:PT5S}
+    batch-size: ${PROCESSING_BATCH_SIZE:10}
+    claim-timeout: ${PROCESSING_CLAIM_TIMEOUT:PT10M}
+    max-attempts: ${PROCESSING_MAX_ATTEMPTS:5}
+    retry-base: ${PROCESSING_RETRY_BASE:PT30S}
+    max-extracted-chars: ${PROCESSING_MAX_TEXT_CHARS:2000000}
+    clamav-host: ${CLAMAV_HOST:}
+    clamav-port: ${CLAMAV_PORT:3310}
+    clamav-timeout: ${CLAMAV_TIMEOUT:PT60S}
+    orphan-age: ${STORAGE_ORPHAN_AGE:PT1H}
 
 logging:
   pattern:

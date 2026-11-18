@@ -17,6 +17,9 @@ public interface StoragePort {
 
     void copy(String sourceKey, String targetKey);
 
+    /** Keys under {@code prefix} last modified before {@code olderThan} (for orphan reconciliation). */
+    java.util.stream.Stream<String> listKeys(String prefix, java.time.Instant olderThan);
+
     /** Best-effort removal used for compensation; never throws. Returns whether it succeeded. */
     boolean deleteQuietly(String key);
 

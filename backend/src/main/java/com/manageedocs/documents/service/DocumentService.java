@@ -17,6 +17,7 @@ import com.manageedocs.exception.ApiException;
 import com.manageedocs.permissions.model.AclEntry;
 import com.manageedocs.permissions.model.ResourceRight;
 import com.manageedocs.permissions.service.AccessPolicy;
+import com.manageedocs.processing.service.ProcessingQueue;
 import com.manageedocs.security.AppUserDetails;
 import com.manageedocs.security.Permission;
 import com.manageedocs.storage.StoragePort;
@@ -81,11 +82,12 @@ public class DocumentService {
     private final AuditService audit;
     private final TransactionTemplate tx;
     private final Clock clock;
+    private final ProcessingQueue processing;
 
     public DocumentService(DocumentRepository documents, DocumentVersionRepository versions,
                            SubDividerRepository subDividers, MetadataService metadata, TaxonomyAccess access,
                            StoragePort storage, StorageProperties storageProps, DocumentsProperties props,
-                           AuditService audit, TransactionTemplate tx, Clock clock) {
+                           AuditService audit, TransactionTemplate tx, Clock clock, ProcessingQueue processing) {
         this.documents = documents;
         this.versions = versions;
         this.subDividers = subDividers;
@@ -97,6 +99,7 @@ public class DocumentService {
         this.audit = audit;
         this.tx = tx;
         this.clock = clock;
+        this.processing = processing;
     }
 
     public record UploadCommand(UUID folderId, UUID subDividerId, String title, UUID documentTypeId,
@@ -125,8 +128,10 @@ public class DocumentService {
         try {
             tx.executeWithoutResult(s -> {
                 documents.save(doc);
-                versions.save(new DocumentVersion(doc.getId(), 1, stored.key(), stored.safeName(), stored.contentType(),
-                        stored.size(), stored.sha256(), "Initial upload", null, caller.userId(), clock.instant()));
+                DocumentVersion v1 = versions.save(new DocumentVersion(doc.getId(), 1, stored.key(), stored.safeName(),
+                        stored.contentType(), stored.size(), stored.sha256(), "Initial upload", null, caller.userId(), clock.instant()));
+                // @TenantId is stamped at insert time, so a just-created entity has no tenant yet in memory.
+                processing.enqueue(TenantContext.require(), doc.getId(), v1.getId());
                 metadata.replace(doc.getId(), typed);
                 audit.success(caller, "DOCUMENT_UPLOADED", "DOCUMENT", doc.getId(), Map.of(
                         "title", doc.getTitle(), "folderId", folder.getId().toString(),
@@ -160,8 +165,9 @@ public class DocumentService {
                             + ") was added meanwhile. Review it before uploading again.");
                 }
                 int no = locked.nextVersionNo();
-                versions.save(new DocumentVersion(documentId, no, stored.key(), stored.safeName(), stored.contentType(),
-                        stored.size(), stored.sha256(), comment, null, caller.userId(), clock.instant()));
+                DocumentVersion v = versions.save(new DocumentVersion(documentId, no, stored.key(), stored.safeName(),
+                        stored.contentType(), stored.size(), stored.sha256(), comment, null, caller.userId(), clock.instant()));
+                processing.enqueue(locked.getTenantId(), documentId, v.getId());
                 locked.advanceTo(no);
                 if (!keepLock && locked.isLockedBy(caller.userId(), clock.instant())) locked.unlock();
                 audit.success(caller, "DOCUMENT_VERSION_CREATED", "DOCUMENT", documentId, Map.of(
@@ -192,10 +198,11 @@ public class DocumentService {
                 Document locked = documents.findForUpdate(documentId).orElseThrow(() -> ApiException.notFound("Document"));
                 ensureNotLockedByOther(locked, caller);
                 int no = locked.nextVersionNo();
-                versions.save(new DocumentVersion(documentId, no, key, source.getOriginalFilename(), source.getContentType(),
+                DocumentVersion v = versions.save(new DocumentVersion(documentId, no, key, source.getOriginalFilename(), source.getContentType(),
                         source.getSizeBytes(), source.getSha256(),
                         comment == null || comment.isBlank() ? "Restored from version " + versionNo : comment,
                         versionNo, caller.userId(), clock.instant()));
+                processing.enqueue(locked.getTenantId(), documentId, v.getId());
                 locked.advanceTo(no);
                 audit.success(caller, "DOCUMENT_VERSION_RESTORED", "DOCUMENT", documentId, Map.of(
                         "restoredFrom", Integer.toString(versionNo), "newVersionNo", Integer.toString(no)));
@@ -260,8 +267,14 @@ public class DocumentService {
         int no = versionNo == null ? doc.getCurrentVersionNo() : versionNo;
         DocumentVersion v = versions.findByDocumentIdAndVersionNo(documentId, no)
                 .orElseThrow(() -> ApiException.notFound("Version"));
-        if (v.getProcessingStatus() == DocumentVersion.ProcessingStatus.QUARANTINED) {
-            throw ApiException.conflict("QUARANTINED", "This version failed the security scan and cannot be downloaded");
+        switch (v.getProcessingStatus()) {
+            case AVAILABLE -> { }
+            case QUARANTINED -> throw ApiException.conflict("QUARANTINED",
+                    "This version failed the security scan and cannot be downloaded");
+            case FAILED -> throw ApiException.conflict("PROCESSING_FAILED",
+                    "This version could not be security-scanned. An administrator can reprocess it.");
+            case STORED, PROCESSING -> throw ApiException.conflict("PROCESSING",
+                    "This version is still being security-scanned. Try again in a moment.");
         }
         Instant expires = clock.instant().plus(storageProps.downloadUrlTtl());
         String url = storage.presignedDownload(v.getStorageKey(), v.getOriginalFilename(), v.getContentType(),
