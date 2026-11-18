@@ -130,6 +130,16 @@ class AuthFlowIT extends MySqlIntegrationTest {
         }));
         // No tenant at all: fail closed.
         tx.executeWithoutResult(s -> assertThat(users.findAll()).isEmpty());
+
+        // Directory lookup names colleagues only: Beta's user id does not resolve for Alpha.
+        String alphaToken = JsonPath.read(login(alpha.getCode(), EMAIL, ALPHA_PW, 200).getResponse().getContentAsString(), "$.data.accessToken");
+        UUID alphaUserId = TenantContext.callAs(alpha.getId(), () -> tx.execute(s -> users.findByEmail(EMAIL).orElseThrow().getId()));
+        mvc.perform(get("/api/v1/directory/people").param("ids", alphaUserId + "," + betaUserId)
+                        .header("Authorization", "Bearer " + alphaToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].fullName").value("Ann Alpha"))
+                .andExpect(jsonPath("$.data[0].email").doesNotExist());
     }
 
     @Test
