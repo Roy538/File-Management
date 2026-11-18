@@ -65,6 +65,22 @@ public final class ApiClient {
                 .andExpect(status().is(expected)).andReturn();
     }
 
+    public String uploadTyped(String token, String folderId, String name, byte[] bytes, String documentTypeId) throws Exception {
+        return read(mvc.perform(multipart("/api/v1/documents")
+                        .file(new MockMultipartFile("file", name, "application/octet-stream", bytes))
+                        .param("folderId", folderId)
+                        .param("documentTypeId", documentTypeId)
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().is(201)).andReturn(), "$.data.document.id");
+    }
+
+    /** HTTP status of a GET on a presigned URL (for asserting a purged object is really gone). */
+    public static int httpStatus(String url) throws Exception {
+        return HttpClient.newHttpClient()
+                .send(HttpRequest.newBuilder(URI.create(url)).GET().build(), HttpResponse.BodyHandlers.discarding())
+                .statusCode();
+    }
+
     public String uploadId(String token, String folderId, String name, byte[] bytes) throws Exception {
         return read(upload(token, folderId, name, bytes, 201), "$.data.document.id");
     }

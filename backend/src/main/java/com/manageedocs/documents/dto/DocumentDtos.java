@@ -37,7 +37,8 @@ public final class DocumentDtos {
     public record DocumentDetail(UUID id, String title, Document.Status status, UUID cabinetId, UUID folderId,
                                  UUID subDividerId, UUID documentTypeId, int currentVersionNo, UUID ownerId,
                                  LockView lock, List<Map<String, String>> metadata, List<VersionView> versions,
-                                 List<String> rights, long entityVersion, Instant createdAt, Instant updatedAt) {
+                                 List<String> rights, long entityVersion, boolean onLegalHold, Instant archivedAt,
+                                 Instant createdAt, Instant updatedAt) {
     }
 
     /** Upload result; {@code possibleDuplicates} lists visible documents with byte-identical content. */

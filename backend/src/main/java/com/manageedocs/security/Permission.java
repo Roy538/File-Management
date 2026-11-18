@@ -39,6 +39,12 @@ public enum Permission {
     /** Force-release another user's check-out lock. */
     DOCUMENTS_LOCK_OVERRIDE("documents:lock_override"),
 
+    // Governance
+    /** Define retention policies, assign them, and approve or cancel disposition (destruction) runs. */
+    RETENTION_MANAGE("retention:manage"),
+    /** Place and release legal holds. */
+    LEGAL_HOLD_MANAGE("legal_holds:manage"),
+
     // Operations
     /** Inspect the processing pipeline, reprocess documents, rebuild the search index. */
     PROCESSING_MANAGE("processing:manage");

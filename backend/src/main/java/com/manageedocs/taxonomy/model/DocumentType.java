@@ -18,6 +18,9 @@ public class DocumentType extends TenantScopedEntity {
     @Column(nullable = false)
     private boolean active = true;
 
+    @Column(name = "retention_policy_id")
+    private java.util.UUID retentionPolicyId;
+
     protected DocumentType() {
     }
 
@@ -35,6 +38,11 @@ public class DocumentType extends TenantScopedEntity {
         this.active = false;
     }
 
+    public void assignRetentionPolicy(java.util.UUID policyId) {
+        this.retentionPolicyId = policyId;
+    }
+
+    public java.util.UUID getRetentionPolicyId() { return retentionPolicyId; }
     public String getName() { return name; }
     public String getDescription() { return description; }
     public boolean isActive() { return active; }

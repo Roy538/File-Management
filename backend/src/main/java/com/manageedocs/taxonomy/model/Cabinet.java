@@ -38,6 +38,9 @@ public class Cabinet extends TenantScopedEntity {
     @Column(name = "deleted_at")
     private Instant deletedAt;
 
+    @Column(name = "retention_policy_id")
+    private UUID retentionPolicyId;
+
     protected Cabinet() {
     }
 
@@ -68,6 +71,11 @@ public class Cabinet extends TenantScopedEntity {
         return s == null || s.isBlank() ? null : s.trim();
     }
 
+    public void assignRetentionPolicy(UUID policyId) {
+        this.retentionPolicyId = policyId;
+    }
+
+    public UUID getRetentionPolicyId() { return retentionPolicyId; }
     public String getName() { return name; }
     public String getDescription() { return description; }
     public Visibility getVisibility() { return visibility; }

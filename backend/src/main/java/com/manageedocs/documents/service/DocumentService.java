@@ -83,11 +83,13 @@ public class DocumentService {
     private final TransactionTemplate tx;
     private final Clock clock;
     private final ProcessingQueue processing;
+    private final com.manageedocs.retention.repository.LegalHoldDocumentRepository holds;
 
     public DocumentService(DocumentRepository documents, DocumentVersionRepository versions,
                            SubDividerRepository subDividers, MetadataService metadata, TaxonomyAccess access,
                            StoragePort storage, StorageProperties storageProps, DocumentsProperties props,
-                           AuditService audit, TransactionTemplate tx, Clock clock, ProcessingQueue processing) {
+                           AuditService audit, TransactionTemplate tx, Clock clock, ProcessingQueue processing,
+                           com.manageedocs.retention.repository.LegalHoldDocumentRepository holds) {
         this.documents = documents;
         this.versions = versions;
         this.subDividers = subDividers;
@@ -100,6 +102,7 @@ public class DocumentService {
         this.tx = tx;
         this.clock = clock;
         this.processing = processing;
+        this.holds = holds;
     }
 
     public record UploadCommand(UUID folderId, UUID subDividerId, String title, UUID documentTypeId,
@@ -356,6 +359,9 @@ public class DocumentService {
         tx.executeWithoutResult(s -> {
             Document locked = documents.findForUpdate(documentId).orElseThrow(() -> ApiException.notFound("Document"));
             ensureNotLockedByOther(locked, caller);
+            if (holds.isUnderActiveHold(documentId)) {
+                throw ApiException.conflict("LEGAL_HOLD", "This document is under a legal hold and cannot be deleted");
+            }
             locked.softDelete(caller.userId(), clock.instant());
             audit.success(caller, "DOCUMENT_DELETED", "DOCUMENT", documentId, Map.of("title", locked.getTitle()));
         });
@@ -403,7 +409,15 @@ public class DocumentService {
         access.policy().require(rights(caller, doc), right, "Document", doc.getId());
     }
 
+    /** Archived documents are read-only records (retention). */
+    private static void ensureNotArchived(Document doc) {
+        if (doc.isArchived()) {
+            throw ApiException.conflict("ARCHIVED", "This document is archived and can no longer be changed");
+        }
+    }
+
     private void ensureNotLockedByOther(Document doc, AppUserDetails caller) {
+        ensureNotArchived(doc);
         if (doc.isLockedByOther(caller.userId(), clock.instant())) {
             throw ApiException.conflict("DOCUMENT_LOCKED", "This document is checked out by another user until "
                     + doc.getLockExpiresAt());
@@ -434,7 +448,8 @@ public class DocumentService {
                     d.getSubDividerId(), d.getDocumentTypeId(), d.getCurrentVersionNo(), d.getOwnerId(), lock,
                     metadata.describe(d.getId(), d.getDocumentTypeId()),
                     versions.findByDocumentIdOrderByVersionNoDesc(d.getId()).stream().map(VersionView::of).toList(),
-                    rightNames(rights), d.getVersion() == null ? 0 : d.getVersion(), d.getCreatedAt(), d.getUpdatedAt());
+                    rightNames(rights), d.getVersion() == null ? 0 : d.getVersion(), holds.isUnderActiveHold(d.getId()),
+                    d.getArchivedAt(), d.getCreatedAt(), d.getUpdatedAt());
         });
     }
 

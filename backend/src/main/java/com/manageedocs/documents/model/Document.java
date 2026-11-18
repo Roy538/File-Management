@@ -62,6 +62,12 @@ public class Document extends TenantScopedEntity {
     @Column(name = "deleted_by")
     private UUID deletedBy;
 
+    @Column(name = "archived_at")
+    private Instant archivedAt;
+
+    @Column(name = "destroyed_at")
+    private Instant destroyedAt;
+
     protected Document() {
     }
 
@@ -125,6 +131,24 @@ public class Document extends TenantScopedEntity {
         unlock();
     }
 
+    /** Retention ARCHIVE: the document becomes read-only; content stays retrievable. */
+    public void archive(Instant at) {
+        this.status = Status.ARCHIVED;
+        this.archivedAt = at;
+        unlock();
+    }
+
+    public boolean isArchived() {
+        return status == Status.ARCHIVED;
+    }
+
+    /** Disposition: removed from use; binaries are purged by the caller, this row remains as evidence. */
+    public void destroy(UUID by, Instant at) {
+        softDelete(by, at);
+        this.destroyedAt = at;
+    }
+
+    public Instant getArchivedAt() { return archivedAt; }
     public UUID getCabinetId() { return cabinetId; }
     public UUID getFolderId() { return folderId; }
     public UUID getSubDividerId() { return subDividerId; }

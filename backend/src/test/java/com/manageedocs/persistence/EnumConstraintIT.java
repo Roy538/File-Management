@@ -28,15 +28,21 @@ class EnumConstraintIT extends MySqlIntegrationTest {
 
     @Autowired JdbcTemplate jdbc;
 
-    private static final Map<String, Class<? extends Enum<?>>> CONSTRAINTS = Map.of(
-            "ck_user_role", Role.class,
-            "ck_audit_outcome", AuditOutcome.class,
-            "ck_cabinet_visibility", Cabinet.Visibility.class,
-            "ck_metadata_field_type", MetadataField.DataType.class,
-            "ck_acl_resource", AclEntry.ResourceType.class,
-            "ck_document_status", Document.Status.class,
-            "ck_document_version_status", DocumentVersion.ProcessingStatus.class,
-            "ck_user_permission_effect", UserPermission.Effect.class);
+    private static final Map<String, Class<? extends Enum<?>>> CONSTRAINTS = Map.ofEntries(
+            Map.entry("ck_user_role", Role.class),
+            Map.entry("ck_audit_outcome", AuditOutcome.class),
+            Map.entry("ck_cabinet_visibility", Cabinet.Visibility.class),
+            Map.entry("ck_metadata_field_type", MetadataField.DataType.class),
+            Map.entry("ck_acl_resource", AclEntry.ResourceType.class),
+            Map.entry("ck_document_status", Document.Status.class),
+            Map.entry("ck_document_version_status", DocumentVersion.ProcessingStatus.class),
+            Map.entry("ck_user_permission_effect", UserPermission.Effect.class),
+            Map.entry("ck_processing_job_status", com.manageedocs.processing.model.ProcessingJob.Status.class),
+            Map.entry("ck_processing_job_scan", com.manageedocs.processing.model.ProcessingJob.ScanResult.class),
+            Map.entry("ck_retention_policy_trigger", com.manageedocs.retention.model.RetentionPolicy.Trigger.class),
+            Map.entry("ck_retention_policy_action", com.manageedocs.retention.model.RetentionPolicy.Action.class),
+            Map.entry("ck_disposition_run_status", com.manageedocs.retention.model.DispositionRun.Status.class),
+            Map.entry("ck_disposition_item_outcome", com.manageedocs.retention.model.DispositionItem.Outcome.class));
 
     @Test
     void everyEnumConstantIsAcceptedByItsCheckConstraint() {

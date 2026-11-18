@@ -67,7 +67,8 @@ public class OrphanObjectSweeper {
 
     private int deleteUnreferenced(List<String> keys) {
         Set<String> referenced = new HashSet<>(jdbc.queryForList(
-                "select storage_key from document_version where storage_key in (:keys)",
+                "select v.storage_key from document_version v join document d on d.id = v.document_id"
+                        + " where d.destroyed_at is null and v.storage_key in (:keys)",
                 new MapSqlParameterSource("keys", keys), String.class));
         int n = 0;
         for (String k : keys) {

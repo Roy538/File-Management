@@ -8,6 +8,9 @@ manageedocs:
     retry-base: PT0S
     max-attempts: 2
     orphan-age: PT0S                 # sweep is only ever invoked explicitly in tests
+  retention:
+    scheduler-enabled: false         # tests call DispositionService.evaluate directly
 management:
   server:
     port: 0
+
