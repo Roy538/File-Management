@@ -61,3 +61,22 @@ export function roleLabel(role: Role, lower = false): string {
   const label = ROLE_LABELS[role];
   return lower ? label.toLowerCase() : label;
 }
+
+/** A calendar date from the API ("2026-11-18"), shown without any time-zone shift. */
+export function formatDay(day: string | null | undefined): string {
+  if (!day) return '—';
+  const [y, m, d] = day.split('-').map(Number);
+  return dateFmt.format(new Date(y!, m! - 1, d!));
+}
+
+/** Today as "YYYY-MM-DD" in the browser's zone (for date inputs). */
+export function todayIso(now = new Date()): string {
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${p(now.getMonth() + 1)}-${p(now.getDate())}`;
+}
+
+/** Whole days from one calendar date to another (positive when `to` is later). */
+export function daysBetween(from: string, to: string): number {
+  const ms = (s: string) => { const [y, m, d] = s.split('-').map(Number); return Date.UTC(y!, m! - 1, d!); };
+  return Math.round((ms(to) - ms(from)) / 86_400_000);
+}

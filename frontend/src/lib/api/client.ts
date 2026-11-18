@@ -165,3 +165,29 @@ export function upload<T>(path: string, form: FormData, onProgress?: (fraction: 
     xhr.send(form);
   });
 }
+
+/**
+ * Downloads a binary response (e.g. a report export) with the in-memory bearer token, then hands
+ * it to the browser as a file. Uses the server's Content-Disposition file name when present.
+ */
+export async function download(path: string, query?: Query, retry = true): Promise<string> {
+  const headers: Record<string, string> = {};
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
+  const res = await fetch(`${BASE}${withQuery(path, query)}`, { headers, credentials: 'same-origin' });
+  if (res.status === 401 && retry) {
+    if (await refreshSession()) return download(path, query, false);
+    accessToken = null;
+    onSessionExpired();
+  }
+  if (!res.ok) throw toError(res.status, await parse<unknown>(res));
+  const name = /filename="?([^";]+)"?/.exec(res.headers.get('Content-Disposition') ?? '')?.[1] ?? 'download';
+  const url = URL.createObjectURL(await res.blob());
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
+  return name;
+}

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import {
   Bell, ChevronDown, ClipboardCheck, FileSearch, FolderOpen, Gavel, Home, LogOut, Menu as MenuIcon,
-  Search, ShieldCheck, Tags, Upload, Users, Workflow, X, Archive,
+  Search, ShieldCheck, Tags, Upload, Users, Workflow, X, Archive, Library, ArrowLeftRight, FileQuestion, BarChart3, Building2,
 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api/client';
@@ -32,6 +32,15 @@ const SECTIONS: NavSection[] = [
     ],
   },
   {
+    id: 'registry', label: 'Registry', icon: <Library className="size-4" />,
+    items: [
+      { to: '/records', label: 'File register', icon: <Library className="size-4" />, capability: 'records:read' },
+      { to: '/records/loans', label: 'Files on loan', icon: <ArrowLeftRight className="size-4" />, capability: 'records:read' },
+      { to: '/records/requests', label: 'File requests', icon: <FileQuestion className="size-4" />, capability: 'records:request' },
+      { to: '/reports', label: 'Reports', icon: <BarChart3 className="size-4" />, capability: 'reports:read' },
+    ],
+  },
+  {
     id: 'workflows', label: 'Workflows', icon: <Workflow className="size-4" />,
     items: [
       { to: '/tasks', label: 'My reviews', icon: <ClipboardCheck className="size-4" />, capability: 'workflows:participate' },
@@ -42,6 +51,7 @@ const SECTIONS: NavSection[] = [
     id: 'admin', label: 'Administration', icon: <ShieldCheck className="size-4" />,
     items: [
       { to: '/admin/users', label: 'Users', icon: <Users className="size-4" />, capability: 'users:read' },
+      { to: '/admin/departments', label: 'Departments', icon: <Building2 className="size-4" />, capability: 'settings:manage' },
       { to: '/admin/document-types', label: 'Document types', icon: <Tags className="size-4" />, capability: 'document_types:manage' },
       { to: '/admin/retention', label: 'Retention', icon: <Archive className="size-4" />, capability: 'retention:manage' },
       { to: '/admin/legal-holds', label: 'Legal holds', icon: <Gavel className="size-4" />, capability: 'legal_holds:manage' },
@@ -203,7 +213,7 @@ function Sidebar() {
       </NavLink>
       {sections.map((s) => {
         const expanded = open[s.id] ?? true;
-        const containsActive = s.items.some((i) => location.pathname.startsWith(i.to));
+        const containsActive = s.items.some((i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`));
         return (
           <div key={s.id} className="mx-2 mb-1">
             <button
@@ -219,7 +229,7 @@ function Sidebar() {
               <ul className="mt-0.5 space-y-px pl-4">
                 {s.items.map((i) => (
                   <li key={i.to}>
-                    <NavLink to={i.to} className={({ isActive }) => navLinkClass(isActive)}>{i.icon}{i.label}</NavLink>
+                    <NavLink to={i.to} end={i.to === '/records'} className={({ isActive }) => navLinkClass(isActive)}>{i.icon}{i.label}</NavLink>
                   </li>
                 ))}
               </ul>

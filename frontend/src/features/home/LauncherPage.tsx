@@ -1,12 +1,16 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Archive, Bell, ClipboardCheck, FileSearch, FolderOpen, Gavel, Search, Tags, Upload, Users, Workflow } from 'lucide-react';
+import {
+  Archive, ArrowLeftRight, BarChart3, Bell, Building2, ClipboardCheck, FileQuestion, FileSearch, FolderOpen, Gavel, Library,
+  Search, Tags, Upload, Users, Workflow,
+} from 'lucide-react';
 import { api } from '@/lib/api/client';
 import type { DueDocument, TaskView } from '@/lib/api/types';
 import { useCan, useSession } from '@/features/auth/session';
 import { TabbedPanel } from '@/components/ui/TabbedPanel';
 import { useUploadDialog } from '@/features/explorer/uploadStore';
+import type { Dashboard } from '@/features/records/types';
 
 /**
  * Home: the reference "launcher" — grouped panels of what this user can do, each with a live
@@ -24,6 +28,11 @@ export function LauncherPage() {
     types: useCan('document_types:manage'),
     retention: useCan('retention:manage'),
     holds: useCan('legal_holds:manage'),
+    records: useCan('records:read'),
+    requestFiles: useCan('records:request'),
+    dispatch: useCan('records:dispatch'),
+    reports: useCan('reports:read'),
+    departments: useCan('settings:manage'),
   };
   const openUpload = useUploadDialog((s) => s.show);
 
@@ -35,6 +44,8 @@ export function LauncherPage() {
     enabled: can.retention,
   });
 
+  const dashboard = useQuery({ queryKey: ['dashboard'], queryFn: () => api.get<Dashboard>('/dashboard'), enabled: can.records });
+  const reg = dashboard.data?.records;
   const openTasks = tasks.data?.length;
   const overdue = tasks.data?.filter((t) => t.overdue).length ?? 0;
   const firstName = user?.fullName.split(' ')[0] ?? '';
@@ -71,10 +82,29 @@ export function LauncherPage() {
           </TabbedPanel>
         )}
 
+        {can.records && (
+          <TabbedPanel tab="Registry" icon={<Library className="size-4" />}>
+            <ul className="divide-y divide-rule">
+              <Tile to="/records" icon={<Library />} title="File register"
+                text={reg ? (reg.byStatus.MISSING ? `${reg.byStatus.MISSING} missing` : `${reg.byStatus.AVAILABLE} in the registry`) : 'Find a paper file and where it is'}
+                figure={reg?.totalFiles} urgent={(reg?.byStatus.MISSING ?? 0) > 0} loading={dashboard.isLoading} />
+              <Tile to={reg?.overdue ? '/records/loans?overdue=1' : '/records/loans'} icon={<ArrowLeftRight />} title="Files on loan"
+                text={reg ? (reg.overdue ? `${reg.overdue} late` : `${reg.dispatchedToday} lent and ${reg.returnedToday} returned today`) : 'Who has which file'}
+                figure={reg?.outOnLoan} urgent={(reg?.overdue ?? 0) > 0} loading={dashboard.isLoading} />
+              {can.requestFiles && (
+                <Tile to="/records/requests" icon={<FileQuestion />} title={can.dispatch ? 'File requests' : 'My file requests'}
+                  text={can.dispatch ? 'Waiting for your decision' : 'Your requests still waiting'} figure={reg?.pendingRequests} loading={dashboard.isLoading} />
+              )}
+              {can.reports && <Tile to="/reports" icon={<BarChart3 />} title="Reports" text="Loans, returns, missing files; Excel and PDF" />}
+            </ul>
+          </TabbedPanel>
+        )}
+
         {(can.users || can.types || can.designWorkflows || can.retention || can.holds) && (
           <TabbedPanel tab="Administration" icon={<Users className="size-4" />}>
             <ul className="divide-y divide-rule">
               {can.users && <Tile to="/admin/users" icon={<Users />} title="Users" text="Accounts, roles and permissions" />}
+              {can.departments && <Tile to="/admin/departments" icon={<Building2 />} title="Departments" text="Who owns each paper file" />}
               {can.types && <Tile to="/admin/document-types" icon={<Tags />} title="Document types" text="Types and the details each one records" />}
               {can.designWorkflows && <Tile to="/admin/workflows" icon={<Workflow />} title="Workflow designs" text="Review and approval steps" />}
               {can.retention && (
