@@ -1,0 +1,2101 @@
+# MASTER ENGINEERING DIRECTIVE
+# MANAGEEDOCS — COMPREHENSIVE SYSTEM AUDIT, ARCHITECTURAL RE-ENGINEERING, ENTERPRISE MODERNISATION AND END-TO-END IMPLEMENTATION
+
+**MISSION:** Transform the existing ManageEDocs application into a fully integrated, enterprise-grade, secure, intelligent, scalable, maintainable, extensible and production-ready Document Management System (DMS).
+
+**ENGAGEMENT LEVEL:** Principal Software Architect + Enterprise DMS Architect + Senior Full-Stack Engineering Team + Database Architect + Cybersecurity Engineer + DevSecOps Engineer + UI/UX Design Specialist + Quality Assurance Engineer.
+
+**EXECUTION MODE:** Autonomous, evidence-driven, systematic engineering with controlled implementation, continuous verification and documented delivery.
+
+---
+
+# PART 1: EXECUTIVE MANDATE AND EXPECTED OUTCOME
+
+## 1.1 Your appointment
+
+You are appointed as the Principal Systems Architect and Lead Engineering Authority responsible for the complete technical and functional transformation of my existing ManageEDocs platform.
+
+You are not being asked to create another document upload application.
+
+You are responsible for transforming an existing software product into a comprehensive Document Management System capable of supporting professional organisational document management, governance, collaboration, compliance, workflow automation and intelligent document discovery.
+
+Approach this assignment as though you are leading an experienced enterprise software engineering team delivering a commercial software product.
+
+Think critically, challenge existing architectural decisions, identify opportunities, anticipate future requirements and implement solutions that are technically justified.
+
+Your responsibility extends beyond identifying weaknesses.
+
+You must investigate, design, implement, integrate, validate, optimise, secure and document the system.
+
+The desired engineering lifecycle is:
+
+**DISCOVER → AUDIT → ANALYSE → ARCHITECT → PLAN → IMPLEMENT → INTEGRATE → TEST → SECURE → OPTIMISE → DOCUMENT → DELIVER.**
+
+Do not confuse a visually complete application with a functionally complete application.
+
+Do not confuse working individual modules with a properly integrated system.
+
+Do not confuse successful compilation with production readiness.
+
+The ultimate measure of success is whether ManageEDocs works as a coherent, reliable, secure and maintainable enterprise product.
+
+## 1.2 Primary objectives
+
+The transformation must achieve the following:
+
+1. Clean separation of frontend and backend responsibilities.
+2. A well-designed API-driven architecture.
+3. Properly defined domain and infrastructure boundaries.
+4. Reliable relational data management using MySQL.
+5. Secure and scalable document storage.
+6. Complete document ingestion and processing pipelines.
+7. Advanced document organisation and retrieval.
+8. Intelligent full-text and metadata search.
+9. Comprehensive document version management.
+10. Configurable document approval and review workflows.
+11. Granular authentication and authorisation.
+12. Multi-tenancy readiness and proper tenant isolation.
+13. Complete auditability and document governance.
+14. Document retention, archival and lifecycle management.
+15. AI-assisted document intelligence where appropriate.
+16. Responsive, modern and highly usable interfaces.
+17. Asynchronous processing and automation.
+18. Reliable deployment, monitoring, backups and recovery.
+19. Comprehensive automated testing.
+20. Clear technical documentation and future extensibility.
+
+Go beyond this list whenever a genuine architectural, operational or business improvement is identified.
+
+---
+
+# PART 2: MANDATORY TECHNOLOGY STACK
+
+The following technology choices are mandatory and must guide all architectural decisions.
+
+Do not replace the primary application technologies without explicit approval.
+
+## 2.1 Frontend: React + TypeScript
+
+The frontend MUST use React and TypeScript.
+
+Preferred technologies:
+
+- React.
+- TypeScript with strict type checking.
+- Vite for application development and builds, unless the existing implementation justifies an alternative.
+- React Router for navigation.
+- TanStack Query for server-state management.
+- Zustand or an appropriate lightweight state-management solution where necessary.
+- Axios or Fetch API through a centralised API client.
+- React Hook Form.
+- Zod for schema validation.
+- An appropriate reusable component system.
+- Lucide icons or another consistent icon system.
+
+Frontend engineering requirements:
+
+- Feature-based organisation.
+- Clear component boundaries.
+- Reusable UI components.
+- Centralised API communication.
+- Consistent state management.
+- Secure authentication flows.
+- Predictable navigation.
+- Proper form validation.
+- Responsive design.
+- Accessibility.
+- Error boundaries.
+- Lazy loading where beneficial.
+- Proper loading, empty, success and error states.
+- No direct database access.
+- No backend business logic duplicated unnecessarily in UI components.
+- No exposed infrastructure credentials.
+- No hardcoded production data.
+
+## 2.2 Backend: Java + Spring Boot
+
+The backend MUST use Java and Spring Boot.
+
+Preferred technologies:
+
+- Java 21 or a newer appropriate LTS release.
+- A supported Spring Boot version compatible with the chosen Java version.
+- Spring Web.
+- Spring Security.
+- Spring Data JPA.
+- Hibernate.
+- Bean Validation.
+- Spring Boot Actuator.
+- Flyway.
+- Springdoc OpenAPI.
+- JUnit 5.
+- Mockito.
+
+Use Spring Boot capabilities appropriately for:
+
+- REST API development.
+- Dependency injection.
+- Business logic.
+- Authentication and authorisation.
+- Transaction management.
+- Database persistence.
+- Validation.
+- Exception handling.
+- Background jobs.
+- Scheduling.
+- Application monitoring.
+- Integration management.
+
+Backend requirements:
+
+- Clear domain boundaries.
+- Proper controller/service/repository separation.
+- DTO-based API contracts.
+- Centralised exception handling.
+- Consistent API responses.
+- Transactional integrity.
+- Secure configuration.
+- Structured logging.
+- Testable business logic.
+- Proper dependency management.
+- Maintainable package organisation.
+
+Do not expose internal JPA entities directly as public API contracts.
+
+## 2.3 Database: MySQL Server
+
+MySQL is the mandatory primary relational database.
+
+Prefer MySQL 8.4 LTS or a compatible supported version.
+
+Use:
+
+- Spring Data JPA.
+- Hibernate.
+- Flyway.
+- Proper relational modelling.
+- Foreign-key constraints.
+- Database indexes.
+- Transaction management.
+- Connection pooling.
+- Query optimisation.
+
+The application must connect to the designated MySQL Server through environment-based configuration.
+
+Do not replace MySQL with PostgreSQL, MongoDB, SQLite or another database.
+
+Do not introduce an alternative database merely because a particular library supports it.
+
+MySQL must remain the authoritative source of structured application data.
+
+Design the database to accommodate:
+
+- Users.
+- Organisations.
+- Tenants.
+- Departments.
+- Roles.
+- Permissions.
+- Documents.
+- Document versions.
+- Document metadata.
+- Folders.
+- Categories.
+- Tags.
+- Workflows.
+- Approval records.
+- Audit events.
+- Retention policies.
+- Sharing records.
+- Notifications.
+- System configurations.
+- Integration records.
+
+Use JSON columns only where flexible attributes genuinely justify them. Do not replace proper relational modelling with indiscriminate JSON storage.
+
+## 2.4 Additional technologies
+
+Evaluate the following complementary technologies.
+
+| Technology | Potential responsibility |
+|---|---|
+| MinIO / Amazon S3 | Object storage |
+| RabbitMQ | Asynchronous job processing |
+| Redis | Caching and distributed coordination |
+| OpenSearch | Advanced search |
+| Apache Tika | Document extraction |
+| Tesseract OCR | Scanned document recognition |
+| ClamAV | Malware scanning |
+| LibreOffice headless | Document conversion |
+| Nginx | Reverse proxy and static delivery |
+| Docker | Containerisation |
+| Prometheus / Grafana | Monitoring and metrics |
+| OpenTelemetry | Distributed tracing |
+| Flyway | Schema migrations |
+
+These are candidates, not mandatory installations.
+
+Evaluate actual requirements, operational complexity, compatibility, resource consumption and maintenance implications before introducing them.
+
+Use a modular monolith initially unless a genuine requirement justifies independently deployed services.
+
+Do not turn a maintainable application into an unnecessarily complicated distributed system.
+
+---
+
+# PART 3: CLAUDE SKILLS AND SPECIALISED ENGINEERING CAPABILITIES
+
+This engagement must take advantage of Claude's available skills, specialised instructions, tools and engineering capabilities.
+
+Before implementation, discover the skills available in the current Claude Code environment.
+
+## 3.1 Mandatory skill discovery
+
+Start by investigating the available skills and relevant tooling.
+
+Use the `find-skills` skill, if available, to discover relevant skills for:
+
+- Software architecture.
+- Full-stack development.
+- React engineering.
+- Spring Boot and Java engineering.
+- Frontend design.
+- UI/UX design.
+- Database architecture.
+- Security.
+- Testing.
+- Code review.
+- Performance optimisation.
+- Documentation.
+- DevOps.
+
+Read the actual instructions of relevant installed skills before applying them.
+
+Do not assume that a skill is installed simply because its name appears in this prompt.
+
+If a required skill is missing, determine whether it can be safely discovered or installed through the supported skill-management workflow. Ask for approval before installing untrusted third-party skill packages or executing their setup scripts.
+
+## 3.2 Specifically evaluate these skills
+
+### A. find-skills
+
+Use this to discover additional relevant skills that can improve the quality of the engineering engagement.
+
+Search for specialised capabilities rather than relying on a limited predefined skill set.
+
+### B. frontend-design
+
+Use this skill for high-quality frontend design and implementation.
+
+Focus on:
+
+- Professional visual hierarchy.
+- Design consistency.
+- Modern enterprise interfaces.
+- Responsive layouts.
+- Component quality.
+- Interaction patterns.
+- Typography.
+- Spacing.
+- Visual refinement.
+- Practical usability.
+
+### C. ux-ui-engine
+
+Use this skill if available.
+
+Apply it to:
+
+- User journey analysis.
+- Information architecture.
+- User experience improvements.
+- Navigation design.
+- Interaction design.
+- Accessibility.
+- Usability evaluation.
+- Interface consistency.
+- Workflow simplification.
+
+### D. ponytail
+
+Evaluate and use the Ponytail skill if it is available and relevant to this project.
+
+Inspect its actual skill instructions before deciding how to apply it.
+
+Do not invent its capabilities or assume what it does based solely on its name.
+
+### E. Additional relevant skills
+
+Search for and evaluate appropriate skills covering:
+
+- React best practices.
+- Java and Spring Boot architecture.
+- Clean Architecture.
+- Domain-Driven Design.
+- MySQL optimisation.
+- API design.
+- OWASP security.
+- Database migration.
+- Playwright.
+- Vitest.
+- JUnit.
+- Integration testing.
+- Accessibility.
+- Docker and deployment.
+- Technical documentation.
+
+Use specialised skills where they materially improve the work.
+
+## 3.3 Skill utilisation rules
+
+- Read relevant SKILL.md instructions before applying a skill.
+- Use skills according to their intended responsibilities.
+- Avoid applying conflicting design or engineering instructions blindly.
+- Prefer project-specific conventions when they are technically sound.
+- Do not install duplicate skills.
+- Do not let a frontend-design skill override backend architecture requirements.
+- Do not allow design tooling to make uncontrolled modifications to unrelated files.
+- Do not claim that a skill was used unless it was actually available and applied.
+- Document relevant skills and tools used in the final engineering handover.
+
+Skills must enhance engineering quality, not replace critical thinking.
+
+---
+
+# PART 4: MANDATORY INITIAL DISCOVERY AND CODEBASE AUDIT
+
+Before changing the implementation, establish a complete understanding of the existing system.
+
+Do not begin by rewriting the application.
+
+Do not assume the current folder structure, architecture, framework versions, database schema or functionality.
+
+## 4.1 Inspect the complete workspace
+
+Examine:
+
+- Root directory.
+- Frontend source.
+- Backend source.
+- Database scripts.
+- Database migrations.
+- Configuration files.
+- API definitions.
+- Environment examples.
+- Authentication.
+- Authorisation.
+- Storage implementation.
+- Document processing.
+- Search implementation.
+- Workflow implementation.
+- Tests.
+- Deployment scripts.
+- Docker configurations.
+- Documentation.
+- Dependencies.
+- Existing build pipelines.
+
+Follow actual execution paths.
+
+Identify how data travels from frontend interactions to backend controllers, business services, repositories, databases and storage.
+
+Inspect both implemented and partially implemented functionality.
+
+## 4.2 Establish the baseline
+
+Before substantial modifications:
+
+- Determine frontend build status.
+- Determine backend build status.
+- Inspect existing tests.
+- Inspect database migration status.
+- Verify available development infrastructure.
+- Identify current application startup procedures.
+- Identify existing runtime errors.
+- Identify missing dependencies.
+- Determine whether frontend and backend communicate successfully.
+
+Where practical, run the existing application and observe actual behaviour.
+
+Record pre-existing failures separately from newly introduced failures.
+
+Never hide existing defects by replacing tests or weakening validation.
+
+## 4.3 Architectural audit
+
+Investigate:
+
+- Tight coupling.
+- Circular dependencies.
+- Duplicated logic.
+- Inconsistent API contracts.
+- Poor separation of responsibilities.
+- Inappropriate database access.
+- Inefficient queries.
+- Missing indexes.
+- Unnecessary abstractions.
+- Poor exception handling.
+- Inconsistent validation.
+- Insecure access patterns.
+- Missing transactions.
+- Broken integrations.
+- Performance bottlenecks.
+- Poor testability.
+- Unmaintainable code.
+- Incomplete modules.
+
+## 4.4 Functional audit
+
+For every existing module, establish:
+
+- Implemented capabilities.
+- Functional capabilities.
+- Partially implemented capabilities.
+- Broken capabilities.
+- Missing capabilities.
+- Incorrect business rules.
+- Inconsistent behaviour.
+- Missing validations.
+- Incomplete integrations.
+
+Trace features across the complete stack.
+
+For example, if a document upload screen exists, investigate whether it actually:
+
+1. Validates the file.
+2. Calls the correct API.
+3. Authenticates the request.
+4. Enforces permissions.
+5. Stores the document.
+6. Creates the database record.
+7. Initiates processing.
+8. Updates processing status.
+9. Makes the document retrievable.
+10. Handles failures.
+
+Do not mark a feature complete merely because its interface exists.
+
+## 4.5 Audit report
+
+Create a comprehensive report containing:
+
+- Current architecture.
+- Technology inventory.
+- Existing folder structure.
+- Functional module inventory.
+- Architectural weaknesses.
+- Security weaknesses.
+- Database weaknesses.
+- Performance concerns.
+- Integration problems.
+- Technical debt.
+- Recommended improvements.
+- Severity and priority.
+- Affected modules and files.
+
+Use Critical, High, Medium and Low severity classifications.
+
+Distinguish verified findings from assumptions.
+
+---
+
+# PART 5: TARGET SYSTEM ARCHITECTURE
+
+## 5.1 Architectural direction
+
+Establish a cleanly decoupled architecture.
+
+The intended communication model is:
+
+React Frontend
+↓
+HTTPS / REST APIs
+↓
+Reverse Proxy / API Gateway where justified
+↓
+Spring Boot Backend
+↓
+Application and Domain Modules
+↓
+MySQL / Object Storage / Search / Queue / External Integrations
+
+The React application must not access MySQL or internal storage directly.
+
+All business operations and security-sensitive actions must pass through the backend.
+
+## 5.2 Frontend boundaries
+
+The frontend is responsible for:
+
+- Presentation.
+- User interactions.
+- Navigation.
+- Client-side state.
+- Form validation.
+- API communication.
+- User feedback.
+- Document preview presentation.
+- Responsive experience.
+
+The frontend must not be responsible for enforcing the actual security of protected operations.
+
+## 5.3 Backend boundaries
+
+The backend is responsible for:
+
+- Business rules.
+- Authentication.
+- Authorisation.
+- Document lifecycle.
+- Document processing orchestration.
+- Database transactions.
+- Metadata.
+- Version management.
+- Workflow execution.
+- Audit recording.
+- Notifications.
+- Retention enforcement.
+- Integrations.
+
+## 5.4 Gateway and edge architecture
+
+Evaluate:
+
+- Nginx reverse proxy.
+- API Gateway.
+- Spring Cloud Gateway where appropriate.
+- Authentication filters.
+- Rate limiting.
+- Request validation.
+- CORS.
+- Security headers.
+- API versioning.
+- Request tracing.
+- Timeout policies.
+
+A reverse proxy and an API gateway are not automatically the same architectural requirement.
+
+Implement only the level of gateway functionality justified by the actual deployment.
+
+## 5.5 API contracts
+
+Standardise:
+
+- REST resource naming.
+- HTTP methods.
+- Status codes.
+- DTOs.
+- Pagination.
+- Filtering.
+- Sorting.
+- Error structures.
+- Validation responses.
+- Authentication.
+- Authorisation.
+- API versioning.
+- Idempotency.
+
+Use OpenAPI/Swagger.
+
+Generate or maintain typed frontend API contracts where practical.
+
+Avoid inconsistent response structures across modules.
+
+## 5.6 Recommended backend organisation
+
+Use a modular, domain-oriented structure similar to:
+
+backend/
+└── src/main/java/com/manageedocs/
+    ├── ManageEDocsApplication.java
+    ├── config/
+    ├── common/
+    ├── security/
+    ├── identity/
+    ├── organisation/
+    ├── tenancy/
+    ├── users/
+    ├── departments/
+    ├── documents/
+    ├── folders/
+    ├── metadata/
+    ├── taxonomy/
+    ├── versioning/
+    ├── storage/
+    ├── permissions/
+    ├── workflows/
+    ├── approvals/
+    ├── search/
+    ├── processing/
+    ├── audit/
+    ├── notifications/
+    ├── retention/
+    ├── sharing/
+    ├── reporting/
+    └── integrations/
+
+Each module should have clearly defined responsibilities.
+
+Use appropriate controller, application service, domain, repository, DTO and infrastructure boundaries.
+
+Do not create empty modules simply to fill a directory structure.
+
+## 5.7 Recommended frontend organisation
+
+frontend/
+└── src/
+    ├── app/
+    ├── assets/
+    ├── components/
+    ├── features/
+    │   ├── auth/
+    │   ├── dashboard/
+    │   ├── documents/
+    │   ├── folders/
+    │   ├── search/
+    │   ├── workflows/
+    │   ├── approvals/
+    │   ├── users/
+    │   ├── organisations/
+    │   ├── permissions/
+    │   ├── audit/
+    │   ├── notifications/
+    │   ├── reports/
+    │   └── settings/
+    ├── hooks/
+    ├── layouts/
+    ├── lib/
+    ├── services/
+    ├── store/
+    ├── types/
+    ├── utils/
+    └── styles/
+
+Adapt this structure to the actual codebase rather than forcing unnecessary duplication.
+
+## 5.8 Architecture documentation
+
+Produce:
+
+- System context diagram.
+- Container architecture diagram.
+- Component architecture diagram.
+- Frontend/backend communication diagram.
+- Document ingestion sequence diagram.
+- Document retrieval sequence diagram.
+- Authentication flow.
+- Approval workflow.
+- Deployment architecture.
+- Data model/ER diagram.
+
+Use Mermaid or another maintainable diagramming format.
+
+Explain the responsibilities, dependencies, security boundaries and data flows.
+
+---
+
+# PART 6: ENTERPRISE DOCUMENT MANAGEMENT ENGINE
+
+Treat document management as the core business capability.
+
+## 6.1 Document ingestion
+
+Implement a robust document ingestion lifecycle.
+
+Support:
+
+- Single uploads.
+- Multiple uploads.
+- Bulk upload.
+- Large-file upload.
+- Resumable uploads where justified.
+- Upload progress.
+- File validation.
+- MIME verification.
+- Filename sanitisation.
+- File-size limits.
+- Extension restrictions.
+- Duplicate detection.
+- Content integrity.
+- Malware scanning.
+- Metadata extraction.
+- Document classification.
+- Storage.
+- Processing status.
+
+Use temporary upload states where necessary.
+
+Never trust filenames or content-type headers supplied by clients.
+
+Consider content-based validation and secure file handling.
+
+## 6.2 Document storage
+
+Use an object-storage abstraction.
+
+Evaluate MinIO or another S3-compatible provider.
+
+Store structured document information in MySQL and binaries in object storage.
+
+Support:
+
+- Unique storage keys.
+- Checksums.
+- Storage metadata.
+- Version-aware object references.
+- Secure access.
+- Retention.
+- Archival.
+- Recovery.
+- Storage-provider abstraction.
+
+Implement short-lived presigned URLs for large uploads and downloads where appropriate.
+
+The backend must authorise the operation before issuing access.
+
+Do not expose permanent public URLs or internal storage paths.
+
+Implement consistency safeguards between database records and stored objects.
+
+Account for partial failures where a storage operation succeeds but a database transaction fails, or vice versa.
+
+Use suitable compensation, reconciliation and cleanup mechanisms.
+
+## 6.3 Document processing pipeline
+
+Introduce asynchronous processing where beneficial.
+
+Evaluate:
+
+- Apache Tika.
+- Tesseract OCR.
+- ClamAV.
+- LibreOffice headless.
+- RabbitMQ.
+- Background workers.
+
+A suitable processing lifecycle could be:
+
+Uploaded → Pending Validation → Scanning → Processing → Extracting Metadata → Indexing → Available.
+
+Also support:
+
+- Processing failure.
+- Retry.
+- Dead-letter handling.
+- Manual reprocessing.
+- Processing history.
+- Duplicate job prevention.
+- Idempotency.
+
+Do not perform expensive OCR, conversion or indexing synchronously inside normal upload requests.
+
+## 6.4 Document metadata
+
+Support:
+
+- Standard metadata.
+- Custom metadata.
+- Document types.
+- Categories.
+- Tags.
+- Ownership.
+- Department.
+- Author.
+- Creation date.
+- Effective date.
+- Expiry date.
+- Classification.
+- Confidentiality.
+- Retention category.
+- Custom attributes.
+
+Where appropriate, support configurable metadata schemas associated with document types.
+
+Validate metadata according to its configured schema.
+
+## 6.5 Folder and taxonomy management
+
+Implement:
+
+- Hierarchical folders.
+- Nested folders.
+- Document categories.
+- Tags.
+- Departments.
+- Document collections.
+- Custom taxonomies.
+- Folder-level permissions.
+- Bulk organisation.
+- Saved filters.
+
+Avoid designing a folder hierarchy that becomes unnecessarily restrictive.
+
+Allow documents to be discovered through metadata, tags and search even when their physical organisation is complex.
+
+## 6.6 Document versioning
+
+Implement a proper version-control mechanism.
+
+Support:
+
+- Automatic revision creation.
+- Version numbering.
+- Version history.
+- Version comments.
+- Revision attribution.
+- Previous-version retrieval.
+- Version restoration.
+- Change timestamps.
+- Historical integrity.
+- Concurrent modification handling.
+
+Never silently overwrite an existing document revision.
+
+Define clear rules for the relationship between the logical document and its physical stored versions.
+
+## 6.7 Check-in/check-out
+
+Consider:
+
+- Check-out.
+- Check-in.
+- Editing locks.
+- Lock ownership.
+- Lock expiration.
+- Lock renewal.
+- Administrative release.
+- Concurrent modification detection.
+
+Prevent accidental overwriting and uncontrolled concurrent editing.
+
+---
+
+# PART 7: SEARCH, INDEXING AND INTELLIGENT DISCOVERY
+
+Build a search experience that goes beyond filenames and folder navigation.
+
+Support:
+
+- Filename search.
+- Full-text search.
+- Metadata search.
+- Category search.
+- Tag search.
+- Date-range filtering.
+- Owner filtering.
+- Department filtering.
+- Document type filtering.
+- Advanced search combinations.
+- Sorting.
+- Pagination.
+- Search suggestions.
+- Saved searches.
+- Search history.
+- Search highlighting.
+- Faceted search.
+- Relevance ranking.
+
+Evaluate MySQL full-text search initially and OpenSearch when the scale and functionality justify it.
+
+Search indexing must be asynchronous and recoverable.
+
+Implement re-indexing and consistency checks.
+
+Every search query must respect document permissions and tenant boundaries.
+
+Never expose restricted content through snippets, autocomplete, filters, metadata or search results.
+
+---
+
+# PART 8: IDENTITY, SECURITY AND AUTHORISATION
+
+Security must be embedded throughout the architecture.
+
+## 8.1 Authentication
+
+Use Spring Security.
+
+Evaluate:
+
+- Secure login.
+- Password hashing.
+- Account verification.
+- Password reset.
+- MFA.
+- Session expiration.
+- Token management.
+- Refresh-token rotation if applicable.
+- Session revocation.
+- Account lockout.
+- Login monitoring.
+- Logout.
+- Identity-provider integration.
+
+Select an appropriate authentication model.
+
+Do not store access tokens insecurely in browser local storage without a justified security assessment.
+
+Consider secure HttpOnly cookies and appropriate CSRF protections where suitable.
+
+## 8.2 Authorisation
+
+Implement RBAC and, where necessary, ABAC.
+
+Potential roles:
+
+- Super Administrator.
+- Organisation Administrator.
+- Department Administrator.
+- Document Administrator.
+- Document Owner.
+- Document Editor.
+- Reviewer.
+- Approver.
+- Read-only User.
+- External Collaborator.
+
+Support permissions at appropriate levels:
+
+- Tenant.
+- Organisation.
+- Department.
+- Folder.
+- Document.
+- Individual action.
+
+Actions include:
+
+- View.
+- Upload.
+- Download.
+- Edit.
+- Delete.
+- Share.
+- Approve.
+- Reject.
+- Archive.
+- Restore.
+- Manage permissions.
+
+Implement backend enforcement on every protected operation.
+
+Prevent IDOR and privilege-escalation vulnerabilities.
+
+## 8.3 Multi-tenancy
+
+Design ManageEDocs to support multiple independent organisations.
+
+Consider:
+
+- Tenant identification.
+- Tenant-scoped repositories.
+- Tenant-aware authentication.
+- Tenant-specific roles.
+- Tenant-level settings.
+- Tenant-aware storage.
+- Tenant-aware search.
+- Tenant-specific audit records.
+- Tenant-level reporting.
+- Tenant-specific retention.
+- Tenant isolation.
+
+Ensure tenant context is derived from trusted authentication context and validated on the server.
+
+Never rely on an untrusted tenant ID supplied by the frontend.
+
+Ensure background workers, scheduled tasks, exports, reports and search queries respect tenant boundaries.
+
+Choose the appropriate isolation model based on requirements and document the trade-offs.
+
+## 8.4 Security assessment
+
+Apply OWASP guidance and evaluate:
+
+- SQL injection.
+- XSS.
+- CSRF.
+- Broken access control.
+- IDOR.
+- SSRF.
+- Path traversal.
+- Insecure uploads.
+- Malware.
+- Credential leakage.
+- Sensitive data exposure.
+- Insecure API configuration.
+- Weak session management.
+- Excessive permissions.
+- Insecure sharing.
+- Tenant data leakage.
+
+Introduce security headers, input validation, output encoding, secure configuration and appropriate rate limiting.
+
+Never log passwords, tokens, secrets or sensitive document content.
+
+---
+
+# PART 9: DOCUMENT WORKFLOWS AND APPROVAL ENGINE
+
+Move beyond passive file storage.
+
+Implement a configurable document workflow engine.
+
+Support:
+
+- Document submission.
+- Review.
+- Approval.
+- Rejection.
+- Revision requests.
+- Resubmission.
+- Multi-level approvals.
+- Sequential approvals.
+- Parallel approvals where required.
+- Delegated approvals.
+- Department-based routing.
+- Review deadlines.
+- Escalations.
+- Notifications.
+- Workflow history.
+
+A sample workflow:
+
+Draft → Submitted → Under Review → Revision Requested → Resubmitted → Approved → Published → Archived.
+
+Support additional transitions where appropriate.
+
+Define valid workflow state transitions and enforce them on the backend.
+
+Record who initiated each transition and when.
+
+Avoid hardcoding every possible approval process.
+
+Consider configurable workflow definitions, workflow instances, tasks, assignments and transition history.
+
+Support workflow versioning so existing instances are not broken by changes to future workflow definitions.
+
+---
+
+# PART 10: AUDIT, COMPLIANCE AND INFORMATION GOVERNANCE
+
+Implement a comprehensive governance framework.
+
+## 10.1 Audit trails
+
+Record significant events:
+
+- Login.
+- Failed login.
+- Document upload.
+- Document download.
+- Document update.
+- Version creation.
+- Document deletion.
+- Document restoration.
+- Sharing.
+- Permission changes.
+- Workflow transitions.
+- Approval decisions.
+- Archival.
+- Retention enforcement.
+- Administrative changes.
+
+Capture relevant information:
+
+- Actor.
+- Action.
+- Resource.
+- Timestamp.
+- Result.
+- Tenant context.
+- Correlation identifier.
+- Relevant contextual metadata.
+
+Use append-only or tamper-evident audit mechanisms where appropriate.
+
+Separate audit events from ordinary application logs.
+
+## 10.2 Document retention
+
+Implement:
+
+- Configurable retention policies.
+- Document expiry.
+- Automated archival.
+- Controlled disposal.
+- Legal holds.
+- Retention exceptions.
+- Policy enforcement.
+- Retention history.
+- Administrative reporting.
+
+A legal hold must prevent automated disposal while it remains active.
+
+Never permanently delete documents under an active legal hold.
+
+## 10.3 Compliance readiness
+
+Consider applicable requirements and controls from:
+
+- ISO 15489 records-management principles.
+- ISO 27001 information-security controls.
+- GDPR where applicable.
+- Applicable data protection and records-management legislation.
+- Organisational document-governance policies.
+
+Do not claim formal certification or regulatory compliance merely because software features exist.
+
+Distinguish between technical implementation, organisational procedures, evidence and independent certification.
+
+---
+
+# PART 11: AI AND INTELLIGENT DOCUMENT CAPABILITIES
+
+Evaluate AI capabilities as an additional layer of value.
+
+Potential functionality:
+
+1. Automatic document classification.
+2. Metadata extraction.
+3. Intelligent tagging.
+4. Document summarisation.
+5. OCR-assisted discovery.
+6. Semantic search.
+7. Natural-language document queries.
+8. Similar-document detection.
+9. Duplicate and near-duplicate identification.
+10. Document relationship suggestions.
+11. Extraction of key dates and entities.
+12. Automated document routing suggestions.
+
+Introduce AI through well-defined service abstractions.
+
+Keep AI optional and configurable.
+
+Evaluate providers, costs, privacy, latency and data-processing requirements.
+
+Never send confidential documents to external AI services without appropriate authorisation and privacy controls.
+
+Enforce document permissions before retrieving content for AI processing.
+
+Do not allow AI-generated summaries or classifications to silently become authoritative records without suitable validation.
+
+Include human review for sensitive or consequential decisions.
+
+---
+
+# PART 12: COLLABORATION AND ENTERPRISE INTEGRATIONS
+
+Evaluate:
+
+- Secure document sharing.
+- Expiring sharing links.
+- External collaborators.
+- Document comments.
+- Annotations.
+- Activity feeds.
+- Review collaboration.
+- Document subscriptions.
+- Notifications.
+- Email integration.
+- Microsoft 365 integration.
+- Google Workspace integration.
+- E-signature integrations.
+- Identity-provider integrations.
+- Webhooks.
+- External REST API integrations.
+
+Use clear integration boundaries.
+
+External access must be permission-aware, revocable and auditable.
+
+Use scoped API keys or appropriate OAuth-based integration mechanisms.
+
+Implement webhook authentication, retries, signatures, delivery history and replay protection.
+
+Do not create superficial integrations that merely display a button without performing the underlying operation.
+
+---
+
+# PART 13: FRONTEND DESIGN, UX AND EXPERIENCE MODERNISATION
+
+The frontend must look and behave like a professionally developed enterprise software platform.
+
+Use the frontend-design, ux-ui-engine and other relevant design skills where available.
+
+Do not simply change colours or introduce animations.
+
+Conduct a complete experience audit.
+
+## 13.1 Review the entire experience
+
+Evaluate:
+
+- Login.
+- Registration where applicable.
+- Password recovery.
+- Dashboard.
+- Navigation.
+- Document library.
+- Folder navigation.
+- Search.
+- Document preview.
+- Upload experience.
+- Document details.
+- Version history.
+- Permissions.
+- Workflows.
+- Approvals.
+- Notifications.
+- User management.
+- Organisation management.
+- Reporting.
+- Administration.
+- Settings.
+
+## 13.2 Design standards
+
+The interface must be:
+
+- Modern.
+- Professional.
+- Clean.
+- Intuitive.
+- Responsive.
+- Accessible.
+- Consistent.
+- Efficient.
+- Visually polished.
+
+Introduce a consistent design system covering:
+
+- Typography.
+- Colours.
+- Spacing.
+- Grid.
+- Components.
+- Forms.
+- Buttons.
+- Dialogues.
+- Tables.
+- Menus.
+- Notifications.
+- Loading states.
+- Empty states.
+- Error states.
+- Confirmation states.
+
+## 13.3 Dashboard
+
+Develop a useful, data-driven dashboard.
+
+Consider:
+
+- Total documents.
+- Recently added documents.
+- Pending approvals.
+- Documents awaiting review.
+- Expiring documents.
+- Recent activity.
+- Storage utilisation.
+- Document categories.
+- Workflow statistics.
+- Department activity.
+
+Metrics must come from real backend data.
+
+Respect user permissions when presenting metrics.
+
+Do not use hardcoded statistics or decorative charts pretending to represent real activity.
+
+## 13.4 Document library
+
+Prioritise an efficient document browsing experience.
+
+Consider:
+
+- List and grid views.
+- Breadcrumb navigation.
+- Search.
+- Filters.
+- Sorting.
+- Bulk selection.
+- Bulk actions.
+- Metadata visibility.
+- Document previews.
+- Context menus.
+- Pagination.
+- Saved views.
+- Empty-state guidance.
+
+## 13.5 Interaction quality
+
+Every visible interactive element must work.
+
+Validate:
+
+- Buttons.
+- Forms.
+- Menus.
+- Filters.
+- Dropdowns.
+- Tabs.
+- Dialogues.
+- Navigation.
+- Upload controls.
+- Download controls.
+- Search.
+- Bulk operations.
+
+Provide meaningful feedback and prevent accidental destructive actions.
+
+Avoid excessive animation, unnecessary gradients, visual clutter and decorative gimmicks.
+
+Prioritise practical usability.
+
+---
+
+# PART 14: DATABASE DESIGN AND DATA INTEGRITY
+
+Conduct a complete MySQL database review.
+
+Examine:
+
+- Existing schema.
+- Relationships.
+- Normalisation.
+- Constraints.
+- Indexes.
+- Query plans.
+- Transaction boundaries.
+- Referential integrity.
+- Cascading operations.
+- Soft deletion.
+- Historical records.
+- Data migration.
+- Backup and restoration.
+
+Use Flyway for controlled schema migrations.
+
+Do not modify the production database schema manually without an appropriate migration.
+
+Establish:
+
+- Safe migrations.
+- Rollback procedures where feasible.
+- Migration validation.
+- Database backup before risky changes.
+- Referential integrity.
+- Optimised queries.
+- Pagination.
+- Connection pooling.
+- Appropriate transaction isolation.
+
+Protect historical document versions and audit records.
+
+Do not introduce destructive migrations without explicit authorisation and verified recovery procedures.
+
+---
+
+# PART 15: PERFORMANCE, SCALABILITY AND RESILIENCE
+
+Evaluate performance across the entire system.
+
+## Frontend
+
+- Rendering performance.
+- Bundle size.
+- Lazy loading.
+- Component re-rendering.
+- API request frequency.
+- Caching.
+- Large document lists.
+- State management.
+
+## Backend
+
+- API latency.
+- Database queries.
+- Connection pooling.
+- Thread utilisation.
+- Memory usage.
+- Background processing.
+- Storage operations.
+- Search operations.
+
+## Infrastructure
+
+- Resource utilisation.
+- Horizontal scaling.
+- Queue capacity.
+- Storage capacity.
+- Database capacity.
+- Monitoring.
+- Failure recovery.
+
+Consider:
+
+- Redis caching.
+- Database indexing.
+- Background processing.
+- Pagination.
+- Bulk operations.
+- Connection pooling.
+- CDN where appropriate.
+- Rate limiting.
+- Circuit breakers.
+- Retry policies.
+- Health checks.
+- Graceful degradation.
+
+Implement idempotency for operations where retries could otherwise cause duplication or data corruption.
+
+Use the transactional outbox pattern where reliable database-to-message publication is required.
+
+Establish measurable performance targets.
+
+Do not claim performance improvements without measurement.
+
+---
+
+# PART 16: DEVOPS, DEPLOYMENT AND OPERATIONS
+
+Prepare the system for consistent development, staging and production deployment.
+
+Evaluate:
+
+- Docker.
+- Docker Compose.
+- Nginx.
+- Environment configuration.
+- CI/CD.
+- Build validation.
+- Database migration automation.
+- Monitoring.
+- Logging.
+- Alerting.
+- Backup automation.
+- Disaster recovery.
+
+Provide appropriate deployment configurations.
+
+Support independent frontend and backend builds and deployments.
+
+Use secure environment variables and secret management.
+
+Never commit real credentials.
+
+Implement:
+
+- Backend health endpoints.
+- Readiness checks.
+- Liveness checks.
+- Structured logs.
+- Correlation IDs.
+- Metrics.
+- Error tracking.
+- Operational dashboards.
+
+Create a backup strategy covering:
+
+- MySQL.
+- Object storage.
+- Critical configuration.
+- Audit data.
+- Encryption keys and recovery material.
+
+Backups must be stored independently of the primary application and database infrastructure.
+
+Document recovery procedures and verify restoration.
+
+A backup that has never been tested must not be described as a verified recovery solution.
+
+---
+
+# PART 17: ENGINEERING STANDARDS AND QUALITY CONTROL
+
+Apply appropriate engineering principles:
+
+- SOLID.
+- DRY.
+- KISS.
+- Separation of Concerns.
+- Dependency Inversion.
+- Clean Architecture where appropriate.
+- Domain-Driven Design where beneficial.
+- Secure by Design.
+- Privacy by Design.
+- Fail-safe defaults.
+
+Avoid:
+
+- God classes.
+- Fat controllers.
+- Excessive service coupling.
+- Circular dependencies.
+- Duplicated business rules.
+- Hardcoded secrets.
+- Magic values.
+- Unnecessary abstractions.
+- Overly complex inheritance.
+- Empty methods.
+- Dead code.
+- Suppressed errors.
+- Unused dependencies.
+
+Use meaningful naming, clear interfaces and maintainable documentation.
+
+Refactor responsibly.
+
+Do not refactor unrelated files merely for aesthetic consistency.
+
+---
+
+# PART 18: TESTING STRATEGY AND QUALITY GATES
+
+Establish a comprehensive testing framework.
+
+## 18.1 Frontend testing
+
+Evaluate and implement:
+
+- Vitest.
+- React Testing Library.
+- Playwright.
+
+Test:
+
+- Component behaviour.
+- Forms.
+- Validation.
+- Navigation.
+- Authentication.
+- API integration.
+- Error handling.
+- Responsive behaviour.
+- Accessibility.
+- Critical user journeys.
+
+## 18.2 Backend testing
+
+Use:
+
+- JUnit 5.
+- Mockito.
+- Spring Boot Test.
+- MockMvc or appropriate API testing.
+- Testcontainers where suitable.
+
+Test:
+
+- Business logic.
+- Controllers.
+- Services.
+- Repositories.
+- Database operations.
+- Authentication.
+- Authorisation.
+- Tenant isolation.
+- File processing.
+- Workflow transitions.
+- Audit generation.
+- Error scenarios.
+
+## 18.3 Integration testing
+
+Test actual interactions between:
+
+- React and Spring Boot.
+- Spring Boot and MySQL.
+- Spring Boot and object storage.
+- Backend and queues.
+- Background workers and search.
+- Authentication and permissions.
+
+## 18.4 End-to-end acceptance scenarios
+
+Validate the following complete journeys.
+
+### Scenario A: Document upload
+
+A user logs in, uploads a document, receives upload feedback, the backend validates it, stores it, creates its metadata, initiates processing and makes it available.
+
+### Scenario B: Document retrieval
+
+An authorised user searches for a document, filters results, opens its details, previews it and downloads it.
+
+### Scenario C: Access control
+
+A restricted user attempts to access another user's document. The backend rejects the operation and records the relevant security event.
+
+### Scenario D: Version management
+
+A user uploads a revision, the system creates a new version, preserves the old version and allows authorised retrieval of previous versions.
+
+### Scenario E: Approval workflow
+
+A document is submitted, assigned to a reviewer, reviewed, approved or rejected, and its status and history are updated correctly.
+
+### Scenario F: Multi-tenancy
+
+A user from one organisation attempts to access another organisation's documents, metadata, search results or reports. The system prevents cross-tenant access.
+
+### Scenario G: Document retention
+
+A document reaches its retention deadline. The system evaluates the policy, checks legal holds and performs the appropriate archival or disposal action.
+
+### Scenario H: Processing failure
+
+A document-processing job fails. The system records the failure, supports retries and does not corrupt the underlying document record.
+
+### Scenario I: Recovery
+
+The system is restarted and recovers correctly without losing committed document records or creating inconsistent processing states.
+
+## 18.5 Quality gates
+
+Before declaring completion, validate:
+
+- Frontend builds.
+- Backend builds.
+- Database migrations pass.
+- Automated tests pass.
+- API contracts are consistent.
+- Integration tests pass.
+- Critical end-to-end scenarios pass.
+- Security checks have been performed.
+- No known critical defects remain unresolved.
+
+Do not weaken or remove tests simply to achieve a green build.
+
+Never claim a test passed without actually running it.
+
+---
+
+# PART 19: IMPLEMENTATION ROADMAP AND EXECUTION MANAGEMENT
+
+Execute the transformation in controlled phases.
+
+## PHASE 0 — DISCOVERY AND BASELINE
+
+- Inspect the complete codebase.
+- Discover available skills.
+- Establish the existing technology stack.
+- Run baseline builds and tests.
+- Map the current architecture.
+- Identify risks and defects.
+- Produce the audit report.
+
+Deliverable: Initial technical assessment.
+
+## PHASE 1 — TARGET ARCHITECTURE
+
+- Define frontend/backend boundaries.
+- Define API contracts.
+- Define backend modules.
+- Design the MySQL schema.
+- Define storage architecture.
+- Define security architecture.
+- Define multi-tenancy.
+- Produce architecture diagrams.
+
+Deliverable: Approved engineering direction and implementation plan.
+
+## PHASE 2 — FOUNDATION AND DECOUPLING
+
+- Restructure frontend where necessary.
+- Refactor backend boundaries.
+- Standardise REST APIs.
+- Implement centralised configuration.
+- Improve authentication.
+- Implement database migrations.
+- Establish storage abstraction.
+- Improve error handling.
+- Establish testing foundations.
+
+Deliverable: Stable, decoupled application foundation.
+
+## PHASE 3 — CORE DOCUMENT MANAGEMENT
+
+- Upload.
+- Validation.
+- Storage.
+- Metadata.
+- Folder management.
+- Document retrieval.
+- Preview.
+- Versioning.
+- Permissions.
+- Search.
+
+Deliverable: Fully functional core DMS.
+
+## PHASE 4 — GOVERNANCE AND WORKFLOWS
+
+- Approval engine.
+- Review processes.
+- Audit trails.
+- Retention.
+- Archival.
+- Legal holds.
+- Sharing.
+- Notifications.
+
+Deliverable: Enterprise document governance.
+
+## PHASE 5 — ADVANCED CAPABILITIES
+
+- Background processing.
+- OCR.
+- Advanced search.
+- Automation.
+- AI-assisted capabilities.
+- Integrations.
+- Advanced analytics.
+
+Deliverable: Intelligent and extensible platform.
+
+## PHASE 6 — EXPERIENCE MODERNISATION
+
+- Refine the entire frontend.
+- Improve information architecture.
+- Improve dashboards.
+- Improve document library.
+- Improve administrative interfaces.
+- Improve responsiveness.
+- Validate all interactions.
+
+Deliverable: Polished enterprise experience.
+
+## PHASE 7 — HARDENING AND PRODUCTION READINESS
+
+- Security testing.
+- Performance optimisation.
+- Reliability testing.
+- Integration testing.
+- End-to-end testing.
+- Backup verification.
+- Deployment preparation.
+- Operational documentation.
+
+Deliverable: Verified production-ready release candidate.
+
+## PHASE 8 — FINAL HANDOVER
+
+- Document architecture.
+- Document APIs.
+- Document database.
+- Document deployment.
+- Document configuration.
+- Document testing.
+- Provide implementation summary.
+- Identify remaining limitations.
+
+Deliverable: Complete engineering handover.
+
+---
+
+# PART 20: EXECUTION RULES — STRICTLY NON-NEGOTIABLE
+
+## Rule 1: Audit before implementation
+
+Understand the existing codebase before making changes.
+
+## Rule 2: Preserve existing working functionality
+
+Do not remove functionality unnecessarily.
+
+## Rule 3: Maintain the mandatory technology stack
+
+React + TypeScript, Java + Spring Boot, and MySQL Server remain the primary technologies.
+
+## Rule 4: No fake functionality
+
+No placeholder implementations, empty handlers, mock production responses or buttons that do nothing.
+
+## Rule 5: No superficial architecture
+
+Separate responsibilities genuinely. Merely creating frontend and backend directories is not sufficient.
+
+## Rule 6: No unnecessary technology introduction
+
+Every dependency must have a justified purpose.
+
+## Rule 7: Protect existing data
+
+Never reset databases, destroy records, overwrite user documents or perform destructive migrations without explicit authorisation and recovery verification.
+
+## Rule 8: Secure by default
+
+Every protected backend operation must enforce authentication and authorisation.
+
+## Rule 9: Maintain frontend/backend alignment
+
+Whenever an API changes, inspect and update every affected frontend consumer, integration and test.
+
+## Rule 10: Validate after meaningful changes
+
+Run relevant builds, tests, static analysis and integration checks.
+
+## Rule 11: No silent failures
+
+Implement proper exception handling, logs and actionable feedback.
+
+## Rule 12: Document important decisions
+
+Maintain an engineering decision log for significant architectural choices.
+
+## Rule 13: Work autonomously where safe
+
+Do not ask for permission after every small change.
+
+Proceed through implementation phases, establish checkpoints and validate completed work.
+
+## Rule 14: Ask before high-risk actions
+
+Seek approval before:
+
+- Destructive database operations.
+- Irreversible production changes.
+- Major framework replacement.
+- Unauthorised infrastructure provisioning.
+- Paid service activation.
+- External data transmission.
+- Changes that could expose confidential documents.
+
+## Rule 15: Never fabricate completion
+
+If a capability cannot be completed, explain why, what was implemented, what remains, and what is needed.
+
+## Rule 16: Do not compromise architecture for speed
+
+Prefer a sound, maintainable implementation over a quick but fragile workaround.
+
+## Rule 17: Do not over-engineer
+
+Use the simplest architecture that satisfies the real requirements and leaves a clear path for growth.
+
+---
+
+# PART 21: REQUIRED PROJECT DOCUMENTATION
+
+Maintain and create the following documentation where appropriate:
+
+docs/
+├── architecture/
+│   ├── system-overview.md
+│   ├── architecture-decisions.md
+│   ├── frontend-architecture.md
+│   ├── backend-architecture.md
+│   ├── database-architecture.md
+│   ├── storage-architecture.md
+│   ├── security-architecture.md
+│   └── diagrams/
+├── api/
+│   └── api-guidelines.md
+├── database/
+│   ├── schema.md
+│   └── migrations.md
+├── security/
+│   ├── security-controls.md
+│   └── threat-model.md
+├── operations/
+│   ├── installation.md
+│   ├── deployment.md
+│   ├── monitoring.md
+│   ├── backup-and-recovery.md
+│   └── troubleshooting.md
+├── testing/
+│   └── testing-strategy.md
+└── implementation/
+    ├── initial-audit.md
+    ├── implementation-log.md
+    └── final-handover.md
+
+Adapt this layout to the existing project conventions.
+
+Maintain the root README with accurate installation, configuration, development and deployment instructions.
+
+Do not generate documentation that contradicts the actual implementation.
+
+---
+
+# PART 22: FINAL ACCEPTANCE CRITERIA
+
+ManageEDocs will only be considered successfully transformed when the following conditions are satisfied.
+
+### Architecture
+- Frontend and backend are genuinely decoupled.
+- React communicates with Spring Boot through defined APIs.
+- MySQL is the authoritative relational database.
+- Document storage is properly separated.
+- Backend modules have clear boundaries.
+- Architecture is documented.
+
+### Functionality
+- Existing working functionality is preserved.
+- Core document operations work end to end.
+- Document metadata and versioning work.
+- Search returns correct, permission-filtered results.
+- Workflows function correctly.
+- Permissions are enforced.
+- Audit records are generated.
+- Error and recovery paths are implemented.
+
+### Security
+- Authentication works.
+- Authorisation is enforced server-side.
+- Tenant isolation is tested.
+- Secure document access is implemented.
+- Sensitive information is protected.
+- Security testing has been performed.
+
+### Engineering
+- Frontend builds.
+- Backend builds.
+- Database migrations work.
+- Tests are executed.
+- Integration is verified.
+- No critical unresolved defects are concealed.
+
+### Operations
+- Environment configuration is documented.
+- Deployment procedures exist.
+- Monitoring is established.
+- Backup procedures exist.
+- Recovery procedures are documented and tested where infrastructure permits.
+
+### Experience
+- The interface is responsive.
+- Navigation is consistent.
+- All interactive controls work.
+- Real backend data is displayed.
+- The user experience is polished and accessible.
+
+---
+
+# PART 23: FINAL ENGINEERING HANDOVER
+
+At the conclusion of the assignment, prepare a detailed handover report.
+
+Include:
+
+## A. Initial assessment
+- Original technology stack.
+- Original architecture.
+- Functional inventory.
+- Major weaknesses.
+- Technical debt.
+- Security concerns.
+
+## B. New architecture
+- Target architecture.
+- Frontend structure.
+- Backend structure.
+- API gateway and contracts.
+- Database design.
+- Storage architecture.
+- Processing pipeline.
+- Search architecture.
+- Security model.
+- Multi-tenancy model.
+
+## C. Implementation
+- Features completed.
+- Modules improved.
+- Files significantly modified.
+- Files created.
+- Dependencies introduced or removed.
+- Database migrations.
+- API changes.
+- Integrations.
+
+## D. Verification
+- Build results.
+- Unit test results.
+- Integration test results.
+- End-to-end test results.
+- Security findings.
+- Performance measurements.
+- Outstanding defects.
+
+## E. Deployment
+- Required infrastructure.
+- Environment variables.
+- Database setup.
+- Storage setup.
+- Installation.
+- Deployment.
+- Monitoring.
+- Backup.
+- Recovery.
+
+## F. Outstanding work
+For each outstanding item, specify:
+- What remains.
+- Why it remains.
+- Business or technical impact.
+- Dependencies.
+- Recommended next action.
+
+## G. Final architectural assessment
+Explain how the transformed system compares to the original implementation, the engineering improvements achieved, and any remaining limitations.
+
+---
+
+# PART 24: FINAL DIRECTIVE — TAKE OWNERSHIP
+
+I want you to approach this as an opportunity to engineer a genuinely excellent enterprise Document Management System.
+
+Do not limit your thinking to the existing implementation.
+
+Do not assume that the existing design is correct simply because it already exists.
+
+Challenge weak architecture, identify missing capabilities, eliminate unnecessary complexity, and introduce meaningful improvements.
+
+Think about the needs of:
+
+- Individual users.
+- Departments.
+- Organisation administrators.
+- Records managers.
+- Document reviewers.
+- Compliance officers.
+- System administrators.
+- External collaborators.
+- Future enterprise customers.
+
+Think about how the system will behave when it contains millions of documents, numerous organisations, concurrent users, complex approval processes and demanding governance requirements.
+
+Build the foundation to support that growth without unnecessarily introducing distributed-system complexity today.
+
+The final product must combine:
+
+**Architectural excellence + Functional completeness + Enterprise security + Document governance + Intelligent automation + Excellent user experience + Operational reliability.**
+
+I expect actual engineering execution, not just architectural advice.
+
+Start by examining the complete ManageEDocs project workspace.
+
+Discover the available skills and tools.
+
+Establish the existing technical baseline.
+
+Conduct the comprehensive audit.
+
+Produce the target architecture and phased execution plan.
+
+Then proceed with the implementation systematically, validating each phase before moving forward.
+
+Maintain an implementation log and preserve all important engineering decisions.
+
+Do not stop at recommendations.
+
+Do not stop at a redesigned interface.
+
+Do not stop at successful compilation.
+
+**Deliver the most complete, reliable, secure, maintainable and production-ready version of ManageEDocs that can reasonably be achieved within the available codebase, infrastructure and execution environment.**
+
+YOUR MISSION IS TO ENGINEER THE COMPLETE PRODUCT, NOT MERELY IMPROVE ITS APPEARANCE.

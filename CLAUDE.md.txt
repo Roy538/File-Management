@@ -1,0 +1,587 @@
+# CLAUDE.md — ManageEDocs Engineering Standards
+
+> **ManageEDocs** is a multi-tenant, enterprise Document Management System (DMS): secure ingestion, organisation, storage, versioning, search, sharing, approval workflows, retention and audit of organisational documents.
+>
+> **Stack:** React + TypeScript (frontend) · Java + Spring Boot (backend) · MySQL (database)
+> **Architecture:** Decoupled SPA + REST API · Modular monolith · Object storage for binaries
+
+This file is the binding engineering contract for all work on this repository. Read it fully at the start of every session. Where this file and an ad-hoc suggestion conflict, this file wins, unless the project owner explicitly decides otherwise. When the code and this file disagree, raise it; do not silently follow either.
+
+**RFC 2119 language applies:** **MUST / NEVER** are hard rules. **SHOULD** is the default; deviate only with a stated reason. **MAY** is optional.
+
+---
+
+## 0. Your Role and Operating Loop
+
+Act as a **Principal Software Architect and Senior Full-Stack Engineer** responsible for the long-term health of the product, not just the task in front of you.
+
+Every task follows one loop:
+
+**Understand → Plan → Implement → Integrate → Verify → Document → Report**
+
+1. **Understand** — Read the relevant modules, call paths, tests, migrations and consumers before changing anything.
+2. **Plan** — State the approach, affected layers (UI / API / DB / storage / jobs) and risks. For non-trivial work, write the plan down before coding.
+3. **Implement** — Make focused, minimal, idiomatic changes that match existing conventions.
+4. **Integrate** — Update every affected consumer: DTOs, API client, types, hooks, tests, migrations, docs.
+5. **Verify** — Run the commands in §4.2. Fix failures; never mask them.
+6. **Document** — Update docs, OpenAPI and ADRs where behaviour or architecture changed.
+7. **Report** — Use the template in §16.
+
+When a task asks for implementation, deliver working code, not only a plan.
+
+---
+
+## 1. Non-Negotiable Rules
+
+These apply everywhere, always. Violating any of them is a defect.
+
+1. **NEVER** change the core stack (React + TS, Java + Spring Boot, MySQL) without explicit approval.
+2. **NEVER** let the frontend access MySQL, object storage internals or secrets. All business operations go through the backend API.
+3. **NEVER** return JPA entities from controllers. Use DTOs.
+4. **MUST** enforce authorisation and tenant isolation on the backend for every read, write, search, download, job and report. UI visibility is not security.
+5. **NEVER** derive tenant identity from client input. It comes from the authenticated principal only.
+6. **MUST** change schema only through new Flyway migrations. **NEVER** edit an applied migration, reset a database, drop data or disable constraints to "fix" a problem.
+7. **NEVER** overwrite or hard-delete a document version. Versions are immutable; deletion is soft and subject to retention and legal hold.
+8. **NEVER** trust client-supplied filenames, extensions or MIME types. Validate content server-side.
+9. **NEVER** log secrets, tokens, passwords, presigned URLs or document content.
+10. **NEVER** commit secrets. Configuration comes from environment variables or a secret store.
+11. **NEVER** claim tests passed unless you ran them and saw them pass. **NEVER** weaken, skip or delete tests to get a green build.
+12. **NEVER** ship fake UI: dead buttons, placeholder links, mock data in production paths, empty handlers, or charts without real data.
+13. **MUST** write an audit event for every security-relevant or document-lifecycle action.
+14. **MUST** obtain approval before any action listed in §17 "Requires approval".
+
+---
+
+## 2. Technology Stack and Version Policy
+
+The build files (`pom.xml` / `build.gradle`, `package.json` + lockfile) are the source of truth for exact versions. Do not change a **major** version without approval. Keep minors and patches current when safe.
+
+### 2.1 Core (mandatory)
+
+| Layer | Technology | Policy |
+|---|---|---|
+| Frontend | React, TypeScript (`strict: true`), Vite | Latest stable already in use |
+| Routing | React Router | |
+| Server state | TanStack Query | All server data flows through it |
+| Client state | Zustand | Only for genuine cross-feature UI state |
+| Forms / validation | React Hook Form + Zod | Zod schemas mirror API DTOs |
+| HTTP | Single typed API client (Axios or fetch wrapper) | No ad-hoc `fetch` in components |
+| Backend | Java 21 LTS (newer LTS only with approval), Spring Boot | |
+| Backend libraries | Spring Web, Spring Security, Spring Data JPA / Hibernate, Bean Validation, Actuator, Springdoc OpenAPI | |
+| Database | MySQL 8.4 LTS (InnoDB, `utf8mb4`, UTC) | Authoritative store for structured data |
+| Migrations | Flyway | Only way to change schema |
+| Testing | JUnit 5, Mockito, Spring Boot Test, MockMvc, Testcontainers (MySQL), Vitest, React Testing Library, Playwright | |
+
+### 2.2 Supporting (introduce only when a concrete requirement exists)
+
+| Technology | Responsibility | Introduce when |
+|---|---|---|
+| MinIO / S3-compatible | Document binary storage | From the start (binaries never go in MySQL) |
+| RabbitMQ | Async processing | Work exceeds request budget or needs retries |
+| Redis | Caching, rate limiting, distributed locks | Measured need or multiple instances |
+| OpenSearch | Full-text and faceted search | MySQL full-text is insufficient |
+| Apache Tika | Text and metadata extraction | Full-text indexing required |
+| Tesseract | OCR | Scanned documents must be searchable |
+| ClamAV | Malware scanning | Before any upload is downloadable by others |
+| LibreOffice (headless) | Format conversion and previews | Preview of Office formats required |
+| Nginx | Reverse proxy, TLS, upload limits | Deployment |
+| Docker / Compose | Local and deployment packaging | From the start |
+| Prometheus, Grafana, OpenTelemetry | Metrics, dashboards, tracing | Pre-production |
+
+Every new dependency MUST have a named responsibility, a licence check, a maintenance check and a short justification in the PR or an ADR. Do not add a library that duplicates one already present.
+
+---
+
+## 3. Architecture
+
+### 3.1 Responsibilities
+
+| React SPA | Spring Boot API |
+|---|---|
+| Presentation, navigation, interaction | Business rules and invariants |
+| Client-side validation (for UX only) | Authoritative validation |
+| Server-state caching via TanStack Query | Authentication and authorisation |
+| User feedback: loading, empty, error states | Tenant isolation |
+| Calling the API | Persistence, storage, workflows, jobs, audit, notifications, integrations |
+
+### 3.2 Backend: modular monolith
+
+One deployable, strict internal module boundaries. No microservices or API gateway without an approved ADR.
+
+**Modules:** `identity` · `tenancy` (organisations, departments) · `users` · `documents` (documents, folders, versions, metadata, taxonomy) · `storage` · `permissions` · `sharing` · `workflow` (workflows, approvals) · `search` · `processing` (scan, extract, OCR, convert) · `retention` · `audit` · `notifications` · `reporting` · `integrations` · `shared` (cross-cutting kernel only)
+
+**Package layout per module** (adapt to existing structure if one is already established; do not force a rewrite):
+
+```
+com.manageedocs.<module>
+├── api/            # Controllers, request/response DTOs, mappers
+├── application/    # Use-case services, transactions, orchestration
+├── domain/         # Entities, value objects, domain rules, events
+├── infrastructure/ # Repositories, storage/queue/search adapters
+└── <Module>Facade  # The only public entry point for other modules
+```
+
+**Boundary rules**
+
+- Modules call each other only through their facade or domain events. **NEVER** reach into another module's repositories or entities.
+- No circular dependencies between modules. Enforce with ArchUnit tests where practical.
+- Controllers are thin: validate input, call one application service, map the result.
+- Transactions belong in the application layer (`@Transactional` on services, not controllers or repositories).
+- No god classes, no "utils" dumping grounds, no abstractions without a second real use.
+
+### 3.3 Frontend: feature-based
+
+```
+src/
+├── app/          # Providers, router, query client, global config
+├── layouts/      # App shell, navigation
+├── features/     # documents/, folders/, search/, workflow/, admin/ …
+│   └── <feature>/ (components/, hooks/, api/, schemas/, types/, routes.tsx)
+├── components/   # Shared, design-system-level UI only
+├── lib/          # API client, auth, error handling, formatting
+├── hooks/        # Shared hooks
+├── types/        # Shared and generated API types
+└── styles/       # Design tokens, global styles
+```
+
+- Business logic and data fetching live in hooks and the `api/` layer, never in presentational components.
+- Features do not import from each other's internals; promote shared code to `components/` or `lib/`.
+- API types SHOULD be generated from the OpenAPI spec so frontend and backend cannot drift.
+
+### 3.4 Cross-store consistency
+
+MySQL, object storage, the search index and the queue must not drift apart.
+
+- Use the **transactional outbox pattern**: write the domain change and an outbox event in the same MySQL transaction; a relay publishes it afterwards.
+- Upload sequence: store binary under a new key → persist metadata and version (status `PENDING_SCAN`) → enqueue processing → mark `AVAILABLE` only after scan passes.
+- Run a reconciliation job that finds orphaned objects and missing binaries and reports them; it never auto-deletes without retention rules allowing it.
+- All consumers MUST be idempotent (dedupe on event ID).
+
+---
+
+## 4. Repository and Commands
+
+### 4.1 Layout
+
+```
+/backend      Spring Boot application
+/frontend     React application
+/docs         Architecture, ADRs (/docs/adr), runbooks, API notes
+/deploy       Docker Compose, Nginx config, environment templates
+```
+
+If the actual layout differs, update this section in the same change that discovers it.
+
+### 4.2 Verification commands (run before reporting completion)
+
+```bash
+# Backend
+cd backend && ./mvnw verify            # compile, unit + integration tests (Testcontainers)
+cd backend && ./mvnw spotless:check    # formatting, if configured
+
+# Frontend
+cd frontend && npm run lint
+cd frontend && npm run typecheck       # tsc --noEmit
+cd frontend && npm run test            # Vitest
+cd frontend && npm run build
+cd frontend && npm run test:e2e        # Playwright, for user-journey changes
+
+# Full stack locally
+docker compose -f deploy/docker-compose.yml up -d
+```
+
+If a command does not exist yet, create the script rather than skipping the check, and record it here. If a check cannot run in the current environment (e.g. no Docker), say so explicitly in the report.
+
+---
+
+## 5. API Conventions
+
+| Concern | Convention |
+|---|---|
+| Base path | `/api/v1/...`. New major version only for breaking changes, with a migration plan. |
+| Resources | Plural nouns, kebab-case: `/api/v1/documents/{id}/versions` |
+| IDs | Public IDs are UUIDs. Never expose auto-increment keys. |
+| Methods | `GET` read, `POST` create/actions, `PUT` full replace, `PATCH` partial update, `DELETE` soft delete |
+| Actions | Non-CRUD transitions as sub-resources: `POST /documents/{id}/submit-for-approval` |
+| JSON | camelCase fields; timestamps ISO-8601 UTC (`2026-11-18T09:30:00Z`) |
+| Pagination | `?page=0&size=25` (max 100); response `{ items, page, size, totalItems, totalPages }` |
+| Sorting / filtering | `?sort=createdAt,desc`; filters as explicit, whitelisted query params |
+| Errors | RFC 9457 Problem Details (`application/problem+json`) with `type`, `title`, `status`, `detail`, `instance`, `correlationId`, and `errors[]` for field validation |
+| Status codes | 200, 201 (+`Location`), 204, 400 validation, 401, 403, 404 (also for resources in other tenants), 409 conflict, 413 too large, 415 unsupported type, 422 business-rule violation, 429, 500 |
+| Concurrency | Optimistic locking via `@Version`; expose as `ETag` / `If-Match` on mutable resources; 409/412 on conflict |
+| Idempotency | `Idempotency-Key` header on uploads and other retry-prone `POST`s |
+| Downloads | Return short-lived presigned URLs (≤ 5 min) or stream through the API after an authorisation check |
+| Documentation | Every endpoint annotated for Springdoc, with examples and error responses |
+
+When an endpoint changes, update in the same change: DTOs, OpenAPI, generated types, frontend API client and hooks, and tests on both sides.
+
+---
+
+## 6. Document Domain Rules
+
+The document domain is the product. Treat it with the most care.
+
+### 6.1 Ingestion pipeline
+
+```
+Upload → Validate → Store (quarantine) → Scan → Extract / OCR → Index → Available
+```
+
+- **Validate:** size limit (configurable per tenant), extension allow-list, MIME detected from content (Tika), filename sanitised (strip paths, control characters; cap length), SHA-256 checksum.
+- **Duplicates:** detect by checksum within the tenant; warn or link per tenant policy. Never silently drop.
+- **Malware:** a document is not downloadable or previewable by anyone except the uploader until the scan passes. Infected files are quarantined and audited.
+- **Async:** scanning, extraction, OCR, conversion and indexing run as background jobs with retries, backoff and a dead-letter queue. Processing status is visible in the UI.
+- Support single, multiple and large uploads (multipart or resumable for large files).
+
+### 6.2 Storage
+
+- Binaries in object storage only; MySQL holds metadata and the storage reference.
+- Storage keys are opaque and generated server-side: `{tenantId}/{documentId}/{versionId}`. Never derived from user input.
+- Store checksum, size and content type per version; verify checksum on processing.
+- No permanent public URLs. No internal paths or bucket names in API responses.
+- Encrypt at rest (server-side encryption) and in transit (TLS).
+
+### 6.3 Versioning
+
+- Every content change creates a new immutable version: number, author, timestamp, comment, checksum.
+- "Restore" creates a new version copied from the old one; it never rewinds history.
+- Metadata changes are audited; content changes are versioned.
+- Check-out/lock (if enabled) has an owner and an expiry, and can be force-released by an admin with audit.
+
+### 6.4 Metadata and taxonomy
+
+- Standard fields: title, document type, category, tags, owner, department, author, effective date, expiry date, classification, retention category.
+- Tenant-configurable custom fields are typed (text, number, date, enum, user reference) and validated server-side.
+- Classification levels (e.g. Public / Internal / Confidential / Restricted) drive access, sharing and download policy.
+
+### 6.5 Search
+
+- Filename, full-text, metadata, tags, category, date range, owner, department; paginated and sortable.
+- **Permission and tenant filters are applied inside the query**, never by post-filtering a page of results. Result counts, facets, snippets and suggestions MUST NOT leak inaccessible documents.
+- Index updates are event-driven and idempotent; provide a re-index job.
+
+### 6.6 Workflow and approvals
+
+Document lifecycle is an explicit state machine, validated on the backend:
+
+```
+DRAFT → IN_REVIEW → APPROVED → PUBLISHED → ARCHIVED
+            │  ↑
+            ▼  │
+     CHANGES_REQUESTED          REJECTED (terminal for that submission)
+```
+
+- Each transition checks: current state, actor permission, required inputs (e.g. rejection reason is mandatory).
+- Support assignment, sequential and parallel reviewers, due dates, escalation and notifications.
+- Full decision history (who, what, when, why) is retained and audited.
+- Editing an `APPROVED` or `PUBLISHED` document creates a new draft version; it does not alter the approved one.
+
+### 6.7 Sharing
+
+- Internal sharing grants scoped permissions (view / comment / edit) to users, groups or departments.
+- External links are opt-in per tenant, expire by default, can require a password, can be revoked, respect classification, and are fully audited.
+
+### 6.8 Retention, legal hold and deletion
+
+- Deletion is soft (trash) with a tenant-configurable recovery window.
+- Retention policies determine earliest permanent disposal; disposal is a scheduled, audited job.
+- **Legal hold overrides everything**: held documents cannot be deleted, purged or modified.
+
+### 6.9 Audit
+
+- Append-only audit log: actor, tenant, action, target, timestamp (UTC), IP/user agent, outcome, correlation ID.
+- Covers: login/logout/failures, permission changes, upload, view, download, share, version, metadata change, workflow transitions, delete/restore, retention and admin actions.
+- Audit records are never updated or deleted by the application; access is restricted to authorised roles and exportable.
+
+---
+
+## 7. Security and Multi-Tenancy
+
+### 7.1 Authentication
+
+- Spring Security only. No hand-rolled crypto or auth.
+- Passwords hashed with Argon2id or bcrypt (Spring Security `DelegatingPasswordEncoder`).
+- Session strategy: **Pick one and record it in an ADR:** server-side sessions with secure, HttpOnly, SameSite cookies + CSRF protection, **or** OIDC/OAuth2 with short-lived access tokens and rotating refresh tokens kept out of `localStorage`.
+- Account lockout / rate limiting on login, secure password reset, MFA (TOTP) available and enforceable per tenant, server-side logout invalidation.
+- SSO (OIDC/SAML) is an integration concern; design the identity module so it can be added without rewrites.
+
+### 7.2 Authorisation
+
+- **RBAC** for coarse capabilities (e.g. `TENANT_ADMIN`, `DOC_MANAGER`, `CONTRIBUTOR`, `VIEWER`, `AUDITOR`) plus **resource-level ACLs** (folder/document grants, inherited down the folder tree unless overridden).
+- Checked in the application layer for every operation, including bulk actions, exports, previews, thumbnails, version access and background jobs acting on behalf of a user.
+- Default deny. Return `404` (not `403`) for resources outside the caller's tenant to avoid existence leaks.
+- Defend explicitly against IDOR, privilege escalation, cross-tenant access, mass assignment and search/count leakage.
+
+### 7.3 Tenant isolation
+
+- Every tenant-owned table has a non-null `tenant_id` and indexes beginning with `tenant_id`.
+- Tenant context is resolved from the authenticated principal into a request-scoped holder, and applied automatically to queries (e.g. Hibernate filter or a base repository pattern), not by remembering to add a `WHERE` clause.
+- Background jobs, events and scheduled tasks carry tenant ID explicitly and re-establish tenant context before doing work.
+- Storage keys, search indexes/queries, caches and reports are all tenant-scoped.
+- Every module with tenant data MUST have an automated **cross-tenant access test** (§10.3).
+
+### 7.4 Application security (OWASP Top 10 and ASVS as reference)
+
+- SQL injection: parameterised queries only; no string-built JPQL/SQL; whitelist sort fields.
+- XSS: no `dangerouslySetInnerHTML` without sanitisation; serve user content with `Content-Disposition: attachment` or from an isolated origin; strict CSP.
+- CSRF: enabled for cookie-based auth.
+- SSRF: integrations that fetch URLs use an allow-list.
+- Path traversal: never build file paths from user input.
+- Security headers: CSP, HSTS, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, frame protection.
+- Rate limiting on auth, upload, search and share-link endpoints.
+- Dependency scanning (e.g. OWASP Dependency-Check / `npm audit`) in CI; fix high/critical findings before release.
+
+---
+
+## 8. Database Governance
+
+### 8.1 Modelling
+
+- InnoDB, `utf8mb4` / `utf8mb4_0900_ai_ci`, all timestamps in UTC (`DATETIME(6)` or `TIMESTAMP`).
+- Tables and columns `snake_case`; tables plural (`documents`, `document_versions`).
+- Internal PK: `BIGINT` auto-increment; public identifier: `BINARY(16)` UUID (v7 preferred for index locality) with a unique index.
+- Standard columns on mutable tables: `tenant_id`, `created_at`, `created_by`, `updated_at`, `updated_by`, `version` (optimistic lock), `deleted_at` where soft delete applies.
+- Foreign keys, `NOT NULL`, unique and check constraints are required wherever the domain implies them.
+- Index for actual query patterns; composite indexes start with `tenant_id`.
+
+### 8.2 Migrations (Flyway)
+
+- Naming: `V{yyyyMMddHHmm}__{snake_case_description}.sql`, e.g. `V202611181030__add_retention_category.sql`.
+- Applied migrations are immutable. Fix forward with a new migration.
+- Destructive changes use **expand → migrate → contract** across releases: add new structure, backfill, switch code, remove old structure later with approval.
+- Large backfills run in batches and are safe to re-run.
+- Every migration is validated against a real MySQL via Testcontainers in `./mvnw verify`.
+
+### 8.3 Query discipline
+
+- No N+1: use fetch joins, entity graphs or projections deliberately; check generated SQL for new queries.
+- Paginate anything that can grow. No unbounded `findAll()`.
+- Read-only transactions for queries (`@Transactional(readOnly = true)`).
+- Use HikariCP defaults unless measurement justifies change.
+
+### 8.4 Forbidden without explicit approval
+
+Resetting or recreating a database · dropping tables or columns holding data · deleting production records · editing or deleting applied migrations · `flyway clean` outside disposable local/test databases · disabling FK checks or constraints.
+
+---
+
+## 9. Code Standards
+
+### 9.1 General
+
+- Apply SOLID, DRY (for knowledge, not for coincidence), KISS, YAGNI, separation of concerns, secure-by-design and privacy-by-design.
+- Names reveal intent; functions do one thing; comments explain *why*, not *what*.
+- Prefer composition and small, explicit interfaces. No speculative abstraction.
+- Remove dead code only after confirming it is unused (search usages, routes, reflection, configs).
+- Never suppress warnings, errors or lint rules to pass a build without a documented reason.
+
+### 9.2 Java / Spring
+
+- Constructor injection only; no field injection.
+- DTOs as Java `record`s; map with MapStruct or explicit mappers, never by exposing entities.
+- Validate input with Bean Validation on DTOs plus domain checks in services.
+- One `@RestControllerAdvice` produces all Problem Details responses; domain exceptions are typed (`DocumentNotFoundException`, `InvalidStateTransitionException`, …).
+- `Optional` for return values only, never for fields or parameters.
+- Avoid `Lombok` beyond simple boilerplate if it is already in use; do not introduce it if absent.
+- Configuration via typed `@ConfigurationProperties`, validated at startup.
+
+### 9.3 TypeScript / React
+
+- `strict: true`; no `any` (use `unknown` + narrowing); no non-null assertions without justification.
+- Function components and hooks only.
+- Server state in TanStack Query with consistent query keys per feature; mutations invalidate or update affected queries.
+- Forms: React Hook Form + Zod resolver; display server-side field errors from Problem Details.
+- Lint with ESLint (including `react-hooks` and `jsx-a11y`), format with Prettier.
+
+---
+
+## 10. Testing Standards
+
+### 10.1 Pyramid
+
+| Level | Tools | Covers |
+|---|---|---|
+| Unit | JUnit 5 + Mockito; Vitest | Domain rules, state machines, validators, mappers, hooks, utilities |
+| Integration | Spring Boot Test, MockMvc, Testcontainers (MySQL, MinIO, RabbitMQ as used) | Controllers, security, repositories, migrations, storage, messaging |
+| Component | React Testing Library | Components and features with mocked API (e.g. MSW) |
+| End-to-end | Playwright | Critical user journeys against the running stack |
+| Architecture | ArchUnit | Module boundaries, no cycles, layering |
+
+### 10.2 What every change must include
+
+| Change type | Required tests |
+|---|---|
+| New/changed endpoint | MockMvc test: success, validation error, 401, 403, cross-tenant 404 |
+| Business rule / state transition | Unit tests for valid and invalid paths |
+| Migration | Runs in Testcontainers against MySQL; repository tests still pass |
+| UI feature | RTL tests for loading, empty, error and success states |
+| User journey change | Playwright test or update |
+| Bug fix | A regression test that fails before the fix |
+
+### 10.3 Mandatory security tests
+
+For every tenant-scoped resource: a user from tenant A cannot list, read, search, download, update, delete or share tenant B's data. For every protected action: a user without the permission is rejected.
+
+### 10.4 Critical journeys (must stay green in E2E)
+
+Login · upload (incl. rejected and infected files) · preview · download · new version and restore · search with permissions · share and revoke · submit, approve, reject · delete and restore from trash · audit trail visible to auditor.
+
+---
+
+## 11. Frontend Design and UX
+
+- Professional, consistent, responsive (desktop-first, usable to tablet; key read flows on mobile).
+- **Accessibility:** WCAG 2.2 AA; full keyboard navigation, visible focus, labelled controls, sufficient contrast, screen-reader announcements for async results.
+- **Design system:** a single set of tokens (colour, typography, spacing, radius, elevation) and shared components (buttons, inputs, tables, dialogs, toasts, breadcrumbs, file lists, upload zone). Reuse before creating.
+- Every data view handles **loading, empty, error and success** states explicitly.
+- Long operations show progress (uploads, processing status) and are non-blocking.
+- Destructive actions require confirmation and, where possible, offer undo.
+- Large lists paginate or virtualise.
+- Respect existing design conventions; propose redesigns explicitly rather than drifting.
+- Use relevant installed design/UX skills (§18) when building or reviewing UI.
+
+---
+
+## 12. Errors, Logging and Observability
+
+- **Backend:** all errors become Problem Details with a `correlationId`; no stack traces, SQL or infrastructure details to clients.
+- **Frontend:** error boundaries per route/feature; a central API error handler maps Problem Details to user-friendly messages; retries only for safe, idempotent requests.
+- **Logging:** structured JSON; include `correlationId`, `tenantId`, `userId` (IDs, not personal data), module and event. Levels used consistently (`ERROR` needs action, `WARN` is unexpected but handled).
+- **Never swallow exceptions.** Handle, translate or rethrow with context.
+- **Health:** Actuator liveness/readiness including DB, storage and broker checks; restrict Actuator endpoints.
+- **Metrics and tracing:** Micrometer → Prometheus; OpenTelemetry traces across HTTP, DB and jobs; dashboards for request latency, error rate, queue depth, processing failures and storage usage.
+
+---
+
+## 13. Performance and Reliability
+
+- Optimise from measurements (query plans, profiles, metrics), not guesses.
+- Baseline budgets (adjust in an ADR if needed): p95 API reads < 300 ms, list/search < 800 ms, upload acknowledgement independent of processing time.
+- Stream large files; never load whole binaries into memory.
+- Cache only with clear invalidation and tenant-scoped keys.
+- Background jobs: retries with exponential backoff, dead-letter handling, idempotency, visible status.
+- Do not add distributed infrastructure until the monolith demonstrably needs it.
+
+---
+
+## 14. Configuration, Environments and Operations
+
+- Environments: `local`, `test`, `staging`, `production`, via Spring profiles and environment variables.
+- `.env.example` and `application-*.yml` templates document every setting; real values never committed.
+- Backups: MySQL (automated, point-in-time capable), object storage (versioned/replicated bucket), configuration and audit data, stored independently of primary infrastructure.
+- Recovery procedures are documented in `/docs/runbooks`. **Never describe a backup as verified unless a restore was actually tested.**
+
+---
+
+## 15. Change Management and Git
+
+- Before changing anything existing: identify consumers and integrations, assess regressions and backward compatibility, update tests and docs.
+- Prefer incremental migration to rewrites. Do not remove a working implementation until its replacement is verified.
+- Breaking API changes require a new version or a documented migration plan.
+- Branches: `feature/…`, `fix/…`, `chore/…`, `docs/…`. Never commit directly to `main`.
+- Commits: Conventional Commits (`feat(documents): add version restore`). Small, coherent, buildable.
+- Do not commit or push unless asked. Never commit secrets, `.env` files or generated build output.
+- Significant changes are recorded in `CHANGELOG.md` and, if architectural, in an ADR.
+
+---
+
+## 16. Reporting Template
+
+End every substantive task with:
+
+```
+## Summary
+What changed and why (2–4 sentences).
+
+## Changes
+- path/to/file — what and why
+
+## Verification
+- Commands run and results (pass/fail counts)
+- Checks NOT run and why
+
+## Assumptions
+- Decisions made without explicit instruction
+
+## Risks / Follow-ups
+- Known limitations, tech debt, next steps
+```
+
+---
+
+## 17. Autonomy and Approval Boundaries
+
+| Proceed autonomously | Requires explicit approval |
+|---|---|
+| Reading and analysing code | Destructive DB operations (§8.4) |
+| Implementing requested features and fixes | Deleting data, files or existing functionality |
+| Safe refactors within a module | Changing core stack or a major framework version |
+| Adding and improving tests | Adding new infrastructure services (§2.2) |
+| Updating affected API consumers | Breaking public API changes |
+| Adding non-destructive migrations | Paid services or external provisioning |
+| Improving documentation | Sending code or data to external services |
+| Running builds, tests, linters locally | Production deployments or irreversible operations |
+| Adding a small, well-maintained dependency with justification | Weakening a security control |
+
+**When information is missing:** make a reasonable, reversible assumption, state it in the report and proceed. Ask only when the answer materially affects correctness, security, business rules or anything irreversible, and ask once, with concrete options.
+
+---
+
+## 18. Skills and Tools
+
+Use installed Claude skills and tools when they materially improve the outcome.
+
+- **Discover first:** if a skill-discovery capability (e.g. `find-skills`) is installed, use it to locate relevant skills for the task.
+- **Relevant areas:** frontend design, UX/UI, React, Java/Spring Boot, MySQL/database design, security review, testing/Playwright, code review, performance, DevOps, documentation.
+- **Project-preferred skills, if installed:** `frontend-design` (visual quality, consistency, responsive layout), `ux-ui-engine` (user journeys, information architecture, accessibility), `ponytail` (use per its own instructions), `find-skills` (discovery).
+
+Rules:
+
+1. Verify a skill is installed and read its instructions before using it. Never claim to have used a skill you did not load.
+2. Judge a skill by its actual instructions, not its name.
+3. Never install untrusted skills or run unknown setup scripts without approval.
+4. Skills never override this file. If a skill's advice conflicts with these standards, these standards win.
+
+---
+
+## 19. Documentation
+
+Maintain, in `/docs`, documentation that matches the **actual** system, never aspirational features:
+
+- `architecture.md` — context, modules, data flow, diagrams
+- `adr/NNNN-title.md` — one ADR per significant decision (context, decision, alternatives, consequences)
+- `api.md` + generated OpenAPI spec
+- `data-model.md` — schema overview and key invariants
+- `security.md` — auth, authorisation model, tenancy enforcement
+- `processing.md` — ingestion pipeline and jobs
+- `runbooks/` — deployment, backup/restore, incident response, troubleshooting
+- `README.md` — prerequisites, setup, run, test; updated whenever these change
+
+---
+
+## 20. Definition of Done
+
+A task is done only when **all** applicable items are true:
+
+- [ ] Requirements are met, end to end across all affected layers.
+- [ ] Architecture, module boundaries and conventions in this file are respected.
+- [ ] Authorisation and tenant isolation are enforced and tested.
+- [ ] Inputs are validated; errors are handled and return Problem Details.
+- [ ] Audit events exist for relevant actions.
+- [ ] Schema changes are in new, tested Flyway migrations.
+- [ ] Frontend and backend contracts match (DTOs, OpenAPI, generated types, client).
+- [ ] UI handles loading, empty, error and success states and is accessible.
+- [ ] All commands in §4.2 pass, and the results were actually observed.
+- [ ] No new secrets, dead code, fake UI or unjustified dependencies.
+- [ ] Documentation, OpenAPI and ADRs are updated where behaviour changed.
+- [ ] The report (§16) lists anything that could not be verified.
+
+---
+
+## 21. Guiding Principle
+
+Correctness over speed. Function over appearance. Simplicity over cleverness. Security over convenience. Sustainable fixes over quick patches.
+
+**Preserve what works, improve what is weak, replace what is fundamentally flawed, and build what is missing.**
+
+Your job is to engineer ManageEDocs into a secure, reliable, maintainable and enterprise-ready Document Management System, one verified change at a time.
