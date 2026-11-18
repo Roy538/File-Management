@@ -1,0 +1,82 @@
+@import "@fontsource-variable/public-sans";
+@import "@fontsource-variable/source-serif-4";
+@import "tailwindcss";
+
+/*
+ * ManageEDocs design tokens — "the registry".
+ * Navy and layout follow the owner's PinPoint/ManageEDocs reference screens. The single
+ * distinctive device is the manila folder tab, reserved for containers (launcher groups,
+ * cabinets, folders). Everything else stays quiet: tables over cards, 14px UI type.
+ */
+@theme {
+  --font-sans: "Public Sans Variable", system-ui, sans-serif;
+  --font-serif: "Source Serif 4 Variable", Georgia, serif;
+
+  --color-navy-950: #071631;
+  --color-navy-900: #0B2148;
+  --color-navy-800: #12336B;   /* registry navy: primary */
+  --color-navy-700: #1C4486;
+  --color-navy-100: #E3EAF6;
+  --color-navy-50: #F1F5FB;
+
+  --color-manila-300: #E8D59E;  /* folder tab */
+  --color-manila-200: #F1E5C2;
+  --color-manila-100: #F8F1DD;  /* search highlight */
+  --color-manila-700: #6E5A1F;  /* text on manila */
+
+  --color-paper: #F5F7FA;
+  --color-surface: #FFFFFF;
+  --color-ink: #1A2332;
+  --color-muted: #5A6475;
+  --color-subtle: #8792A3;
+  --color-rule: #D9DFE7;
+  --color-rule-strong: #C3CBD6;
+
+  --color-ok: #1D7A4B;
+  --color-ok-bg: #E6F4EC;
+  --color-warn: #A86400;
+  --color-warn-bg: #FCF1DF;
+  --color-danger: #B42318;
+  --color-danger-bg: #FDECEA;
+  --color-info: #2F5597;
+  --color-info-bg: #E8EEF8;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  --shadow-pop: 0 8px 24px -6px rgb(11 33 72 / 0.18), 0 2px 6px rgb(11 33 72 / 0.08);
+}
+
+@layer base {
+  html { color-scheme: light; }
+  body {
+    @apply bg-paper text-ink font-sans antialiased;
+    font-size: 14px;
+    line-height: 1.5;
+    font-feature-settings: "tnum" 1;   /* aligned figures in tables and dates */
+  }
+  h1, h2, h3 { text-wrap: balance; }
+  :focus-visible {
+    outline: 2px solid var(--color-navy-700);
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+  ::selection { background: var(--color-manila-300); color: var(--color-ink); }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+}
+
+@layer components {
+  /* The manila tab: a container's label sitting on its top edge, like a folder tab. */
+  .file-tab {
+    @apply inline-flex items-center gap-2 bg-manila-300 text-manila-700 font-semibold;
+    padding: 6px 16px 5px 14px;
+    font-size: 13px;
+    border-radius: 6px 10px 0 0;
+    clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 100%, 0 100%);
+    padding-right: 26px;
+  }
+  .doc-title { font-family: var(--font-serif); font-weight: 560; letter-spacing: -0.005em; }
+}
