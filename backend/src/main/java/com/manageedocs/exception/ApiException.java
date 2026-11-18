@@ -7,6 +7,9 @@ public class ApiException extends RuntimeException {
 
     private final HttpStatus status;
     private final String code;
+    /** Set when this failure is an object-level access denial that must be audited (resource type, id). */
+    private String deniedResourceType;
+    private String deniedResourceId;
 
     public ApiException(HttpStatus status, String code, String message) {
         super(message);
@@ -20,6 +23,25 @@ public class ApiException extends RuntimeException {
 
     public String code() {
         return code;
+    }
+
+    /** Marks this failure as an access denial on a specific object, to be recorded as a security event. */
+    public ApiException deniedOn(String resourceType, Object resourceId) {
+        this.deniedResourceType = resourceType;
+        this.deniedResourceId = resourceId == null ? null : resourceId.toString();
+        return this;
+    }
+
+    public boolean isAccessDenial() {
+        return deniedResourceType != null;
+    }
+
+    public String deniedResourceType() {
+        return deniedResourceType;
+    }
+
+    public String deniedResourceId() {
+        return deniedResourceId;
     }
 
     /** Also used for resources in another tenant / not visible, so IDs cannot be probed. */

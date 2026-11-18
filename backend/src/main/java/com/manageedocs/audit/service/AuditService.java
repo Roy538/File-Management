@@ -40,6 +40,14 @@ public class AuditService {
         }
     }
 
+    /** Records a successful action by the authenticated caller. */
+    @Transactional(propagation = Propagation.MANDATORY)
+    public AuditEvent success(com.manageedocs.security.AppUserDetails caller, String action,
+                              String resourceType, Object resourceId, Map<String, String> details) {
+        return record(new Actor(caller.userId(), caller.email(), com.manageedocs.common.web.RequestInfo.clientIp()),
+                action, AuditOutcome.SUCCESS, resourceType, resourceId == null ? null : resourceId.toString(), details);
+    }
+
     @Transactional(propagation = Propagation.MANDATORY)
     public AuditEvent record(Actor actor, String action, AuditOutcome outcome,
                              String resourceType, String resourceId, Map<String, String> details) {

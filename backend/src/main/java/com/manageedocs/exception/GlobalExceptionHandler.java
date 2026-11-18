@@ -39,8 +39,15 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    private final SecurityEventRecorder securityEvents;
+
+    public GlobalExceptionHandler(SecurityEventRecorder securityEvents) {
+        this.securityEvents = securityEvents;
+    }
+
     @ExceptionHandler(ApiException.class)
     ResponseEntity<StandardAPIResponse<Void>> api(ApiException ex) {
+        if (ex.isAccessDenial()) securityEvents.accessDenied(ex);
         return build(ex.status(), ex.code(), ex.getMessage());
     }
 
@@ -57,6 +64,12 @@ public class GlobalExceptionHandler {
         }
         return ResponseEntity.badRequest()
                 .body(StandardAPIResponse.failure("VALIDATION_FAILED", "Some fields are invalid", fields));
+    }
+
+    @ExceptionHandler(FieldValidationException.class)
+    ResponseEntity<StandardAPIResponse<Void>> fieldValidation(FieldValidationException ex) {
+        return ResponseEntity.badRequest()
+                .body(StandardAPIResponse.failure("VALIDATION_FAILED", ex.getMessage(), ex.fieldErrors()));
     }
 
     @ExceptionHandler(ConstraintViolationException.class)

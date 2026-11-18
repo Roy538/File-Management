@@ -3,6 +3,9 @@ manageedocs:
   security:
     jwt-secret: ${JWT_SECRET}
     refresh-cookie-secure: true
+  storage:
+    access-key: ${STORAGE_ACCESS_KEY}
+    secret-key: ${STORAGE_SECRET_KEY}
 springdoc:
   swagger-ui:
     enabled: ${SWAGGER_ENABLED:false}

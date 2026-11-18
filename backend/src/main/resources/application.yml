@@ -86,6 +86,18 @@ manageedocs:
     max-failed-logins: 5
     lockout-duration: PT15M
     cors-origins: ${CORS_ORIGINS:http://localhost:5173}
+  storage:
+    endpoint: ${STORAGE_ENDPOINT:http://localhost:9000}
+    public-endpoint: ${STORAGE_PUBLIC_ENDPOINT:}
+    region: ${STORAGE_REGION:us-east-1}
+    access-key: ${STORAGE_ACCESS_KEY:minioadmin}
+    secret-key: ${STORAGE_SECRET_KEY:minioadmin}
+    bucket: ${STORAGE_BUCKET:manageedocs}
+    path-style: ${STORAGE_PATH_STYLE:true}
+    download-url-ttl: ${STORAGE_DOWNLOAD_TTL:PT5M}
+  documents:
+    max-file-size-bytes: ${DOCUMENT_MAX_BYTES:104857600}
+    lock-duration: ${DOCUMENT_LOCK_DURATION:PT8H}
 
 logging:
   pattern:

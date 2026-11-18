@@ -96,6 +96,21 @@ public class User extends TenantScopedEntity {
         lastLoginAt = now;
     }
 
+    /** Role change takes effect immediately: existing tokens are revoked. */
+    public void changeRole(Role newRole) {
+        if (newRole != role) {
+            role = newRole;
+            revokeAllTokens();
+        }
+    }
+
+    public void setActive(boolean newActive) {
+        if (newActive != active) {
+            active = newActive;
+            revokeAllTokens();
+        }
+    }
+
     /** Invalidates every access token issued so far (they carry the old version). */
     public void revokeAllTokens() {
         tokenVersion++;
