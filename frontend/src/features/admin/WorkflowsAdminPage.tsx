@@ -14,7 +14,7 @@ import { Dialog } from '@/components/ui/Dialog';
 import { Field, Input, Select, Textarea } from '@/components/ui/Field';
 import { EmptyState, ErrorState, SkeletonRows } from '@/components/ui/States';
 import { TabbedPanel } from '@/components/ui/TabbedPanel';
-import { humanize } from '@/lib/format';
+import { roleLabel } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
@@ -101,7 +101,7 @@ export function WorkflowsAdminPage() {
                           <p className="font-medium text-ink">{s.name}</p>
                           <p className="text-[13px] text-muted">
                             {s.assigneeRole
-                              ? `Anyone who is ${humanize(s.assigneeRole).toLowerCase()} decides`
+                              ? `Anyone who is ${roleLabel(s.assigneeRole, true)} decides`
                               : `${s.approvalMode === 'ALL' ? 'All of' : 'Any one of'} ${s.assigneeUserIds.map(nameOf).join(', ')}`}
                             {s.dueDays !== null ? `, due within ${s.dueDays} day${s.dueDays === 1 ? '' : 's'}` : ''}
                           </p>
@@ -231,7 +231,7 @@ function WorkflowEditor({ initial, users, onClose }: { initial: WorkflowDefiniti
                   </div>
                   {assignBy === 'role' ? (
                     <Field label="Role" className="mt-3 max-w-xs">
-                      {(a) => <Select {...a} {...register(`steps.${i}.assigneeRole`)}>{ROLES.map((r) => <option key={r} value={r}>{humanize(r)}</option>)}</Select>}
+                      {(a) => <Select {...a} {...register(`steps.${i}.assigneeRole`)}>{ROLES.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</Select>}
                     </Field>
                   ) : (
                     <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_12rem]">
@@ -243,7 +243,7 @@ function WorkflowEditor({ initial, users, onClose }: { initial: WorkflowDefiniti
                               <label key={u.id} className="flex items-center gap-2 py-0.5 text-[13.5px]">
                                 <input type="checkbox" className="size-4 accent-navy-800" checked={field.value.includes(u.id)}
                                   onChange={(e) => field.onChange(e.target.checked ? [...field.value, u.id] : field.value.filter((x) => x !== u.id))} />
-                                {u.firstName} {u.lastName} <span className="text-muted">({humanize(u.role).toLowerCase()})</span>
+                                {u.firstName} {u.lastName} <span className="text-muted">({roleLabel(u.role, true)})</span>
                               </label>
                             ))}
                           </div>

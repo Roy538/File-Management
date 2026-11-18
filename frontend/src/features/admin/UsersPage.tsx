@@ -15,7 +15,7 @@ import { Field, Input, Select } from '@/components/ui/Field';
 import { EmptyState, ErrorState, SkeletonRows } from '@/components/ui/States';
 import { Pagination } from '@/components/ui/Pagination';
 import { Menu, MenuContent, MenuItem, MenuTrigger } from '@/components/ui/Menu';
-import { formatDateTime, humanize } from '@/lib/format';
+import { formatDateTime, roleLabel } from '@/lib/format';
 import type { CatalogEntry } from './types';
 
 const ROLES: Role[] = ['ADMIN', 'OFFICER', 'DEPT_USER'];
@@ -62,7 +62,7 @@ export function UsersPage() {
                   <tr key={u.id} className="hover:bg-navy-50/40">
                     <td className="px-4 py-2.5 font-medium text-ink">{u.firstName} {u.lastName}{u.id === myId ? <span className="ml-2 text-[12px] font-normal text-muted">(you)</span> : null}</td>
                     <td className="px-4 py-2.5 text-muted">{u.email}</td>
-                    <td className="px-4 py-2.5">{humanize(u.role)}</td>
+                    <td className="px-4 py-2.5">{roleLabel(u.role)}</td>
                     <td className="px-4 py-2.5"><UserStatus user={u} /></td>
                     <td className="px-4 py-2.5 text-muted">{formatDateTime(u.lastLoginAt)}</td>
                     {canManage ? (
@@ -143,7 +143,7 @@ function CreateUserDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
         <Field label="Last name" error={errors.lastName?.message}>{(a) => <Input {...a} {...register('lastName')} />}</Field>
         <Field label="Email" error={errors.email?.message} className="sm:col-span-2">{(a) => <Input {...a} type="email" {...register('email')} />}</Field>
         <Field label="Role" error={errors.role?.message}>
-          {(a) => <Select {...a} {...register('role')}>{ROLES.map((r) => <option key={r} value={r}>{humanize(r)}</option>)}</Select>}
+          {(a) => <Select {...a} {...register('role')}>{ROLES.map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}</Select>}
         </Field>
         <Field label="Temporary password" hint="12–72 characters. Share it with them privately." error={errors.temporaryPassword?.message}>
           {(a) => <Input {...a} type="password" autoComplete="new-password" {...register('temporaryPassword')} />}
@@ -176,7 +176,7 @@ function EditUserDialog({ user, onClose }: { user: UserView; onClose: () => void
         <Field label="Role">
           {(a) => (
             <Select {...a} value={role} onChange={(e) => setRole(e.target.value as Role)}>
-              {(ROLES.includes(user.role) ? ROLES : [user.role, ...ROLES]).map((r) => <option key={r} value={r}>{humanize(r)}</option>)}
+              {(ROLES.includes(user.role) ? ROLES : [user.role, ...ROLES]).map((r) => <option key={r} value={r}>{roleLabel(r)}</option>)}
             </Select>
           )}
         </Field>
@@ -223,7 +223,7 @@ function PermissionsDialog({ user, onClose }: { user: UserView; onClose: () => v
 
   return (
     <Dialog open onOpenChange={(o) => !o && onClose()} title={`Permissions for ${user.firstName} ${user.lastName}`} width="lg"
-      description={`Starts from what a ${humanize(user.role).toLowerCase()} can do. Grant adds a permission; deny removes one.`}
+      description={`Starts from what a ${roleLabel(user.role, true)} can do. Grant adds a permission; deny removes one.`}
       footer={<>
         <Button onClick={onClose}>Cancel</Button>
         <Button variant="primary" loading={save.isPending} onClick={() => save.mutate()}>Update permissions</Button>

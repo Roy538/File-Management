@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 import { AlertTriangle, ClipboardCheck } from 'lucide-react';
 import { api, ApiError } from '@/lib/api/client';
 import type { Decision, Paged, ReviewView, TaskView, UserView } from '@/lib/api/types';
-import { formatDate, formatDateTime, humanize } from '@/lib/format';
+import { formatDate, formatDateTime, humanize, roleLabel } from '@/lib/format';
 import { useCan, useSession } from '@/features/auth/session';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Button } from '@/components/ui/Button';
@@ -53,7 +53,7 @@ export function TasksPage() {
                         {t.documentTitle ?? 'Untitled document'}
                       </Link>
                       {t.delegatedFrom ? <p className="text-[12.5px] text-muted">Delegated to you</p> : null}
-                      {!t.assigneeUserId && t.assigneeRole ? <p className="text-[12.5px] text-muted">For anyone with the {humanize(t.assigneeRole).toLowerCase()} role</p> : null}
+                      {!t.assigneeUserId && t.assigneeRole ? <p className="text-[12.5px] text-muted">For anyone with the {roleLabel(t.assigneeRole, true)} role</p> : null}
                     </td>
                     <td className="px-4 py-3 text-ink">{t.stepName}</td>
                     <td className="px-4 py-3">

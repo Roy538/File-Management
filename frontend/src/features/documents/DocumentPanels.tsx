@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/Button';
 import { Field, Input, Select } from '@/components/ui/Field';
 import { EmptyState, ErrorState, SkeletonRows, Spinner } from '@/components/ui/States';
 import { ProcessingLabel } from '@/components/ui/StatusBadge';
-import { formatBytes, formatDateTime, fileKind, humanize } from '@/lib/format';
+import { formatBytes, formatDateTime, fileKind, humanize, roleLabel } from '@/lib/format';
 import { useCan, useSession } from '@/features/auth/session';
 import { useDocumentTypes } from '@/features/explorer/queries';
 import { compactMetadata, MetadataFields, validateMetadata, type MetadataValues } from '@/features/explorer/MetadataFields';
@@ -275,7 +275,7 @@ export function ReviewsPanel({ doc, onChanged }: { doc: DocumentDetail; onChange
                   <li key={t.id} className="flex flex-wrap gap-x-2">
                     <span className="font-medium">{t.stepName}:</span>
                     <span className="text-muted">
-                      waiting for {t.assigneeUserId === user?.id ? 'you' : t.assigneeRole ? `any ${humanize(t.assigneeRole).toLowerCase()}` : 'a named reviewer'}
+                      waiting for {t.assigneeUserId === user?.id ? 'you' : t.assigneeRole ? `any ${roleLabel(t.assigneeRole, true)}` : 'a named reviewer'}
                       {t.dueAt ? `, due ${formatDateTime(t.dueAt)}` : ''}
                     </span>
                     {t.overdue ? <span className="text-danger">Overdue</span> : null}

@@ -9,7 +9,7 @@ import { api } from '@/lib/api/client';
 import { useCan, useSession } from '@/features/auth/session';
 import { Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger } from '@/components/ui/Menu';
 import { Button } from '@/components/ui/Button';
-import { initials, humanize } from '@/lib/format';
+import { initials, roleLabel } from '@/lib/format';
 import { cn } from '@/lib/cn';
 import { useUploadDialog } from '@/features/explorer/uploadStore';
 import { UploadDialog } from '@/features/explorer/UploadDialog';
@@ -151,7 +151,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
           <MenuLabel>
             <span className="block text-sm font-medium text-ink">{user?.fullName}</span>
             <span className="block">{user?.email}</span>
-            <span className="block">{user ? humanize(user.role) : ''}, {user?.organisation.name}</span>
+            <span className="block">{user ? roleLabel(user.role) : ''}, {user?.organisation.name}</span>
           </MenuLabel>
           <MenuSeparator />
           <MenuItem icon={<LogOut className="size-4" />} onSelect={() => void signOut()}>Sign out</MenuItem>

@@ -1,4 +1,4 @@
-import type { DocumentStatus } from './api/types';
+import type { DocumentStatus, Role } from './api/types';
 
 const dateFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 const dateTimeFmt = new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -47,4 +47,17 @@ export function fileKind(contentType: string | null | undefined): 'pdf' | 'image
   if (contentType.includes('presentation') || contentType.includes('powerpoint')) return 'slides';
   if (contentType.startsWith('text/')) return 'text';
   return 'file';
+}
+
+/** How roles are named to people (never the enum spelling). */
+const ROLE_LABELS: Record<Role, string> = {
+  SUPER_ADMIN: 'Platform administrator',
+  ADMIN: 'Administrator',
+  OFFICER: 'Records officer',
+  DEPT_USER: 'Department user',
+};
+
+export function roleLabel(role: Role, lower = false): string {
+  const label = ROLE_LABELS[role];
+  return lower ? label.toLowerCase() : label;
 }
