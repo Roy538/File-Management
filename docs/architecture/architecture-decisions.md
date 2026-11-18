@@ -49,6 +49,7 @@ Format: Context → Decision → Consequences. Status: Accepted unless noted.
 
 ## ADR-011 Audit: append-only, hash-chained
 **Decision.** `audit_event` is insert-only. The application DB user has no UPDATE/DELETE grant on it in production. Each row stores `prev_hash` and `hash = SHA-256(prev_hash || canonical(row))` per tenant, so tampering is detectable. Audit is kept separate from application logs.
+*Amendment (2026-11-18):* `details` is stored as `TEXT` containing canonical JSON. A MySQL `JSON` column normalises formatting and key order, which changes the bytes and breaks hash re-verification. This was caught by `AuthFlowIT`.
 
 ## ADR-012 Frontend: keep Vite/React, restructure by feature, design system per reference
 **Decision.** Keep React 18 + Vite + TanStack Query + Tailwind. Add React Hook Form + Zod and minimal Zustand (UI shell state). Move to `src/features/*`, route-level `lazy()`, and a single typed API client. Visual language follows the owner's reference screenshots (`Images/`: PinPoint/ManageEDocs): navy brand, top action bar (Upload · doc-name search · alerts · user), accordion navigation with quick-action tiles, grouped launcher panels, and the cabinet → folder → sub-divider tree with Personal/Private/Default scopes. It is modernised with tokens, accessibility, responsive layout, and loading/empty/error states.

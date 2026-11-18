@@ -25,9 +25,12 @@ Each entry records what changed, why, how it was verified, and what remains. New
 - [system-overview.md](../architecture/system-overview.md) with context, container, module, ingestion, retrieval, auth, workflow and ER diagrams.
 - [architecture-decisions.md](../architecture/architecture-decisions.md), ADR-001 to ADR-013.
 
-## 2026-11-18: Phase 2 Spring Boot foundation 🚧 in progress
-- `backend/`: Spring Boot 4.0.9, Java 21, MySQL 8.4, Flyway. V1 schema covers tenant, department, user, refresh tokens and the hash-chained audit trail.
-- Status and verification are recorded in the next entry when the build completes.
+## 2026-11-18: Phase 2 Spring Boot foundation ✅ (first slice)
+- Branch `feature/springboot-backend-foundation`, `backend/`: Spring Boot 4.0.9, Java 21, MySQL 8.4, Flyway 11.
+- Delivered: tenancy (`@TenantId` discriminator, fail-closed), identity (login, lockout, rotating HttpOnly refresh cookie with reuse detection, `/me`), hash-chained audit, RFC 9457 errors with correlation IDs, stateless security, CORS, security headers, OpenAPI.
+- **Verified:** `mvn verify` reports BUILD SUCCESS: 12 unit tests (including ArchUnit layering rules) and 8 Testcontainers MySQL 8.4 integration tests. Flyway V1 applies cleanly, and Hibernate `validate` passes against the real schema.
+- Finding fixed during verification: MySQL `JSON` columns re-serialise content, which broke audit hash verification. `audit_event.details` is now `TEXT` holding canonical JSON (ADR-011 amended). V1 had never been applied outside ephemeral test containers.
+- Next: Phase 3 slice. Taxonomy (cabinets/folders/sub-dividers/doc types), `AccessPolicy`, storage port (MinIO), document upload/versions/download, plus the React `features/auth` move to the new cookie-based session.
 
 ## Phase plan (remaining)
 | Phase | Scope | Status |
