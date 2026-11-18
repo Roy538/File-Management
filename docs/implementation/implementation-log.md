@@ -9,6 +9,7 @@ Each entry records what changed, why, how it was verified, and what remains. New
 | `security/tenant-isolation-hardening` | Interim NestJS fixes for critical audit findings (ADR-013) | `Login` |
 | `docs/phase0-audit-architecture` | Phase 0 audit, target architecture, ADRs, this log, design references | `Login` |
 | `feature/springboot-backend-foundation` | New Spring Boot + MySQL backend (`backend/`), Phase 2 foundation | `Login` |
+| `feature/documents-core` | Reference-architecture alignment + Phase 3 core DMS | `feature/springboot-backend-foundation` |
 
 ## 2026-11-18: Phase 0 discovery and baseline ✅
 - Audit: [initial-audit.md](initial-audit.md). Key result: the backend is NestJS/Postgres, not the mandated Spring Boot/MySQL. There are two critical cross-tenant data exposures.
@@ -25,6 +26,15 @@ Each entry records what changed, why, how it was verified, and what remains. New
 - [system-overview.md](../architecture/system-overview.md) with context, container, module, ingestion, retrieval, auth, workflow and ER diagrams.
 - [architecture-decisions.md](../architecture/architecture-decisions.md), ADR-001 to ADR-013.
 
+## 2026-11-18: Alignment with the owner's reference platform ✅
+- The owner asked for the backend to follow their reference project (`BulkSMS` Spring Boot backend). Adopted: the `StandardAPIResponse`/`PagedResponse` envelope, a capability catalog with `RoleDefaults` and per-user GRANT/DENY, `PermissionGuard`, the per-request `AppUserDetails` principal with `token_version` revocation, `@PreAuthorize` on every endpoint, a `controller/dto/model/repository/service` layout per module, `db/migration/{vendor}`, the management port 8079, per-profile yml with `.env` import, and the enum vs CHECK-constraint test. Kept different, with reasons: automatic `@TenantId` filtering, UUIDv7 keys, records instead of Lombok, Testcontainers instead of H2 (ADR-014).
+
+## 2026-11-18: Phase 3 core document management ✅
+- Branch `feature/documents-core`: taxonomy (cabinets, folders with materialised paths, sub-dividers, document types and metadata schemas), `AccessPolicy` + grants, an S3/MinIO storage port, documents (content-sniffed upload, SHA-256, duplicates, immutable versions, restore, check-out locks, optimistic concurrency, soft delete, compensation), user administration (revocation via `token_version`), and audited access denials.
+- **Verified:** `mvn verify` reports BUILD SUCCESS: **23 unit + 21 integration tests** on real MySQL 8.4 and MinIO. Directive scenarios **A, B, C, D, F** are covered end to end, including exact-bytes download through presigned URLs.
+- Findings fixed during verification: two refusal paths (cabinet tree, folder listing) did not record denials. MySQL reports CHECK clauses with escaped quotes (test normalised).
+- Remaining for this phase's scope: the React client is not yet switched to `/api/v1` (Phase 6/cutover); search is title-only (FULLTEXT arrives with the Phase 4 pipeline); delete does not yet consult retention or legal hold (Phase 4); the orphan-object sweeper is Phase 4.
+
 ## 2026-11-18: Phase 2 Spring Boot foundation ✅ (first slice)
 - Branch `feature/springboot-backend-foundation`, `backend/`: Spring Boot 4.0.9, Java 21, MySQL 8.4, Flyway 11.
 - Delivered: tenancy (`@TenantId` discriminator, fail-closed), identity (login, lockout, rotating HttpOnly refresh cookie with reuse detection, `/me`), hash-chained audit, RFC 9457 errors with correlation IDs, stateless security, CORS, security headers, OpenAPI.
@@ -35,7 +45,7 @@ Each entry records what changed, why, how it was verified, and what remains. New
 ## Phase plan (remaining)
 | Phase | Scope | Status |
 |---|---|---|
-| 2 | Backend foundation: security, tenancy, identity, audit, error model, OpenAPI, Testcontainers | 🚧 |
+| 2 | Backend foundation: security, tenancy, identity, audit, error model, OpenAPI, Testcontainers | ✅ |
 | 3 | Taxonomy (cabinets/folders/sub-dividers/doc types/metadata), documents + versions, storage, check-in/out, permissions | ⏳ |
 | 4 | Processing pipeline (outbox/jobs), search (FULLTEXT), workflows (versioned), retention + legal hold, sharing, notifications | ⏳ |
 | 5 | Records tracking port (inventory/dispatch/returns/requests), reports, dashboard metrics, e-signature, conversion tools | ⏳ |

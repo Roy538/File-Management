@@ -29,7 +29,7 @@ Format: Context → Decision → Consequences. Status: Accepted unless noted.
 **Consequences.** XSS can no longer exfiltrate a long-lived credential. A page reload performs a silent refresh.
 
 ## ADR-006 Object storage behind a port; server-generated keys
-**Decision.** The `StoragePort` interface has an S3-compatible adapter (AWS SDK v2; MinIO in dev, S3 in prod). Keys follow `t/{tenantId}/d/{documentId}/v/{versionNo}/{uuid}`. Client filenames are never used in keys. Downloads use a presigned GET (≤ 5 min), issued only after authorisation. Each version stores a SHA-256 checksum.
+**Decision.** The `StoragePort` interface has an S3-compatible adapter (AWS SDK v2; MinIO in dev, S3 in prod). Keys follow `t/{tenantId}/d/{documentId}/{uuid}`. *Amended 2026-11-18:* the version number was dropped from the key because it is assigned under a row lock only after the bytes are stored; the `document_version` row links key and version. Client filenames are never used in keys. Downloads use a presigned GET (≤ 5 min), issued only after authorisation. Each version stores a SHA-256 checksum.
 **Consequences.** There is no path traversal and no guessable URLs. Orphaned objects from failed transactions are removed by a reconciliation job.
 
 ## ADR-007 Async processing: transactional outbox + DB-backed job table (no broker yet)
@@ -56,3 +56,11 @@ Format: Context → Decision → Consequences. Status: Accepted unless noted.
 
 ## ADR-013 Interim NestJS hardening (2026-11-18)
 **Decision.** Add a shared access helper (`apps/api/src/cabinets/cabinet-access.ts`) used for every document read and write. Bind inventory, dispatch, users, workflows, e-signature and dashboard lookups to the caller's business unit. Validate uploads by extension allowlist plus magic-byte signature, and sanitise filenames. Cross-tenant and inaccessible lookups return **404** so IDs cannot be enumerated.
+
+## ADR-014 Follow the owner's reference platform conventions
+**Context.** The owner pointed to their own Spring Boot project (`BulkSMS` backend) as the preferred design and invited improvements.
+**Decision.** Adopt its conventions: the response envelope, capability catalog + RoleDefaults + per-user overrides, PermissionGuard, a per-request DB-loaded principal with token-version revocation, `@PreAuthorize` on every endpoint plus service-level scoping, the module layout `controller/dto/model/repository/service`, vendor-partitioned Flyway, a separate management port, and the enum/CHECK drift test. Keep four improvements, stated to the owner: Hibernate `@TenantId` (the reference relies on service code for tenant scoping of join tables), UUIDv7 keys (legacy data is UUID, and keys are not enumerable), records instead of Lombok `@Data` on entities, and Testcontainers instead of H2 (H2 cannot test SKIP LOCKED, as the reference itself notes).
+**Consequences.** One mental model across the owner's projects. Capabilities (what features) and ResourceRights (which objects) are distinct concepts with distinct names.
+
+## ADR-015 Object-level access = baseline ∪ grants, capped by capabilities
+**Decision.** Rights on an object = baseline from cabinet visibility, role and ownership ∪ grants on the cabinet, every ancestor folder (via the materialised path) and the document, ∩ the ceiling implied by the caller's capabilities. Grants only, no deny entries; a capability DENY is the way to remove an ability. Invisible returns 404, visible but not allowed returns 403, and both are audited as `ACCESS_DENIED` from the exception handler after the request transaction has ended.
