@@ -1,3 +1,5 @@
+import { accessibleDocumentWhere } from '../cabinets/cabinet-access';
+import { JwtPayload } from '../auth/strategies/jwt.strategy';
 import * as crypto from 'crypto';
 import {
   BadRequestException,
@@ -24,9 +26,9 @@ export class ESignatureService {
     private readonly storage: StorageService,
   ) {}
 
-  async create(dto: CreateESignatureDto) {
+  async create(dto: CreateESignatureDto, user: JwtPayload) {
     const doc = await this.prisma.document.findFirst({
-      where: { id: dto.documentId, isActive: true },
+      where: { id: dto.documentId, AND: [accessibleDocumentWhere(user)] },
       include: {
         versions: { orderBy: { versionNumber: 'desc' }, take: 1 },
       },
@@ -60,15 +62,15 @@ export class ESignatureService {
     return request;
   }
 
-  listForDocument(documentId: string) {
+  listForDocument(documentId: string, user: JwtPayload) {
     return this.prisma.eSignatureRequest.findMany({
-      where: { documentId },
+      where: { documentId, document: accessibleDocumentWhere(user) },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async cancel(id: string) {
-    const req = await this.prisma.eSignatureRequest.findFirst({ where: { id } });
+  async cancel(id: string, user: JwtPayload) {
+    const req = await this.prisma.eSignatureRequest.findFirst({ where: { id, document: accessibleDocumentWhere(user) } });
     if (!req) throw new NotFoundException('Signing request not found');
     if (req.status !== ESignatureStatus.PENDING) {
       throw new BadRequestException('Only PENDING requests can be cancelled');

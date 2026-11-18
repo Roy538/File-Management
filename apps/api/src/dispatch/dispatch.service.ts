@@ -16,7 +16,7 @@ export class DispatchService {
   ) {}
 
   async dispatch(fileId: string, dto: CreateDispatchDto, user: JwtPayload) {
-    const file = await this.prisma.file.findFirst({ where: { id: fileId, isActive: true } });
+    const file = await this.prisma.file.findFirst({ where: { id: fileId, isActive: true, businessUnitId: user.businessUnitId } });
     if (!file) throw new NotFoundException('File not found');
     if (file.status !== FileStatus.AVAILABLE) {
       throw new BadRequestException(
@@ -65,8 +65,8 @@ export class DispatchService {
   }
 
   async recordReturn(dispatchId: string, dto: CreateReturnDto, user: JwtPayload) {
-    const dispatch = await this.prisma.dispatch.findUnique({
-      where: { id: dispatchId },
+    const dispatch = await this.prisma.dispatch.findFirst({
+      where: { id: dispatchId, file: { businessUnitId: user.businessUnitId } },
       include: { file: true },
     });
     if (!dispatch) throw new NotFoundException('Dispatch not found');
@@ -184,9 +184,9 @@ export class DispatchService {
     return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
   }
 
-  async findOne(id: string) {
-    const dispatch = await this.prisma.dispatch.findUnique({
-      where: { id },
+  async findOne(id: string, user: JwtPayload) {
+    const dispatch = await this.prisma.dispatch.findFirst({
+      where: { id, file: { businessUnitId: user.businessUnitId } },
       include: {
         file: {
           select: { fileNumber: true, customerName: true, currentLocation: true, status: true },

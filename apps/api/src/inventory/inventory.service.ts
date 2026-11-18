@@ -69,9 +69,9 @@ export class InventoryService {
     return { data, total, page, pageSize, totalPages: Math.ceil(total / pageSize) };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtPayload) {
     const file = await this.prisma.file.findFirst({
-      where: { id, isActive: true },
+      where: { id, isActive: true, businessUnitId: user.businessUnitId },
       include: {
         movements: { orderBy: { createdAt: 'desc' }, take: 50 },
         branch: { select: { name: true, code: true } },
@@ -103,7 +103,7 @@ export class InventoryService {
   }
 
   async update(id: string, dto: UpdateFileDto, user: JwtPayload) {
-    const file = await this.findOne(id);
+    const file = await this.findOne(id, user);
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.file.update({ where: { id }, data: dto });
@@ -125,7 +125,7 @@ export class InventoryService {
   }
 
   async changeStatus(id: string, dto: ChangeStatusDto, user: JwtPayload) {
-    const file = await this.findOne(id);
+    const file = await this.findOne(id, user);
 
     if (file.status === FileStatus.ARCHIVED && user.role !== Role.ADMIN) {
       throw new ForbiddenException('Only administrators can restore archived files');
@@ -152,8 +152,8 @@ export class InventoryService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, user: JwtPayload) {
+    await this.findOne(id, user);
     await this.prisma.file.update({
       where: { id },
       data: { isActive: false, deletedAt: new Date() },

@@ -1,5 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { CabinetVisibility, Prisma, Role } from '@prisma/client';
+import { cabinetVisibilityClause } from './cabinet-access';
 import { PrismaService } from '../common/prisma.service';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
 import { CreateCabinetDto } from './dto/create-cabinet.dto';
@@ -18,43 +19,9 @@ export class CabinetsService {
 
   // ── Cabinets ──────────────────────────────────────────────────────────────
 
-  /**
-   * Builds the visibility clause that decides which cabinets a user may see.
-   *  - DEFAULT   → visible to everyone in the business unit
-   *  - PERSONAL  → visible only to its owner
-   *  - PRIVATE   → visible to its owner and anyone granted an ACL (admins see all)
-   * When `scope` is omitted the union of everything the user may see is returned.
-   */
+  /** Delegates to the shared helper so documents/search use identical rules. */
   private visibilityClause(user: JwtPayload, scope?: string): Prisma.CabinetWhereInput {
-    const isAdmin = user.role === Role.ADMIN;
-    const privateAccessible: Prisma.CabinetWhereInput = isAdmin
-      ? { visibility: CabinetVisibility.PRIVATE }
-      : {
-          visibility: CabinetVisibility.PRIVATE,
-          OR: [
-            { ownerId: user.sub },
-            { acls: { some: { OR: [{ userId: user.sub }, { role: user.role }] } } },
-          ],
-        };
-
-    switch (scope) {
-      case CabinetVisibility.PERSONAL:
-        return { visibility: CabinetVisibility.PERSONAL, ownerId: user.sub };
-      case CabinetVisibility.PRIVATE:
-        return privateAccessible;
-      case CabinetVisibility.DEFAULT:
-        return { visibility: CabinetVisibility.DEFAULT };
-      default:
-        return isAdmin
-          ? {} // admins see every visibility in their business unit
-          : {
-              OR: [
-                { visibility: CabinetVisibility.DEFAULT },
-                { visibility: CabinetVisibility.PERSONAL, ownerId: user.sub },
-                privateAccessible,
-              ],
-            };
-    }
+    return cabinetVisibilityClause(user, scope);
   }
 
   listCabinets(user: JwtPayload, scope?: string) {

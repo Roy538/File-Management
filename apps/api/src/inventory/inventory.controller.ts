@@ -32,8 +32,8 @@ export class InventoryController {
   @Get(':id')
   @Roles(Role.ADMIN, Role.OFFICER, Role.DEPT_USER)
   @ApiOperation({ summary: 'Get a file with movement history' })
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.service.findOne(id, user);
   }
 
   @Post()
@@ -69,7 +69,7 @@ export class InventoryController {
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Soft-delete a file (ADMIN only)' })
-  remove(@Param('id') id: string) {
-    return this.service.remove(id);
+  remove(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.service.remove(id, user);
   }
 }

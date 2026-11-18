@@ -1,3 +1,4 @@
+import { accessibleDocumentWhere } from '../cabinets/cabinet-access';
 import { Injectable } from '@nestjs/common';
 import { DocumentStatus, FileStatus, Role, WorkflowStatus } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service';
@@ -74,9 +75,9 @@ export class DashboardService {
           },
         },
       }),
-      this.prisma.document.count(),
-      this.prisma.document.count({ where: { status: DocumentStatus.CHECKED_OUT } }),
-      this.prisma.workflowInstance.count({ where: { status: WorkflowStatus.IN_PROGRESS } }),
+      this.prisma.document.count({ where: accessibleDocumentWhere(user) }),
+      this.prisma.document.count({ where: { status: DocumentStatus.CHECKED_OUT, AND: [accessibleDocumentWhere(user)] } }),
+      this.prisma.workflowInstance.count({ where: { status: WorkflowStatus.IN_PROGRESS, document: accessibleDocumentWhere(user) } }),
       this.prisma.notification.count({ where: { userId: user.sub, isRead: false } }),
     ]);
 

@@ -9,6 +9,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
+import { sanitizeFileName, validateUpload } from './file-validation';
 import { DocumentsService } from './documents.service';
 import { ListDocumentsDto } from './dto/list-documents.dto';
 import { ChangeStatusDto } from './dto/change-status.dto';
@@ -30,14 +31,14 @@ export class DocumentsController {
   @Post('reindex-ocr')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Enqueue OCR extraction for all documents missing text' })
-  reindexOcr() {
-    return this.svc.reindexOcr();
+  reindexOcr(@CurrentUser() u: JwtPayload) {
+    return this.svc.reindexOcr(u);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get document detail with all versions' })
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() u: JwtPayload) {
+    return this.svc.findOne(id, u);
   }
 
   @Post()
@@ -50,19 +51,18 @@ export class DocumentsController {
     const fields: Record<string, string> = {};
     let fileBuffer: Buffer | null = null;
     let fileName = 'document';
-    let mimeType = 'application/octet-stream';
 
     for await (const part of req.parts()) {
       if (part.type === 'file') {
         fileBuffer = await part.toBuffer();
-        fileName = part.filename || 'document';
-        mimeType = part.mimetype || 'application/octet-stream';
+        fileName = sanitizeFileName(part.filename);
       } else {
         fields[(part as any).fieldname] = (part as any).value as string;
       }
     }
 
     if (!fileBuffer) throw new BadRequestException('No file included in request');
+    const mimeType = validateUpload(fileBuffer, fileName);
 
     return this.svc.upload({
       buffer: fileBuffer,
@@ -86,17 +86,16 @@ export class DocumentsController {
 
     let fileBuffer: Buffer | null = null;
     let fileName = 'document';
-    let mimeType = 'application/octet-stream';
 
     for await (const part of req.parts()) {
       if (part.type === 'file') {
         fileBuffer = await part.toBuffer();
-        fileName = part.filename || 'document';
-        mimeType = part.mimetype || 'application/octet-stream';
+        fileName = sanitizeFileName(part.filename);
       }
     }
 
     if (!fileBuffer) throw new BadRequestException('No file included in request');
+    const mimeType = validateUpload(fileBuffer, fileName);
 
     return this.svc.uploadVersion(id, { buffer: fileBuffer, fileName, mimeType, fileSize: fileBuffer.length, user: u });
   }
@@ -109,14 +108,14 @@ export class DocumentsController {
 
   @Get(':id/versions/:versionId/download')
   @ApiOperation({ summary: 'Get a signed download URL for a document version' })
-  getDownloadUrl(@Param('id') id: string, @Param('versionId') versionId: string) {
-    return this.svc.getDownloadUrl(id, versionId);
+  getDownloadUrl(@Param('id') id: string, @Param('versionId') versionId: string, @CurrentUser() u: JwtPayload) {
+    return this.svc.getDownloadUrl(id, versionId, u);
   }
 
   @Delete(':id')
   @Roles(Role.ADMIN)
   @ApiOperation({ summary: 'Soft-delete a document' })
-  deleteDocument(@Param('id') id: string) {
-    return this.svc.deleteDocument(id);
+  deleteDocument(@Param('id') id: string, @CurrentUser() u: JwtPayload) {
+    return this.svc.deleteDocument(id, u);
   }
 }

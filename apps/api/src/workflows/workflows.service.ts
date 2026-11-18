@@ -1,3 +1,4 @@
+import { accessibleDocumentWhere } from '../cabinets/cabinet-access';
 import {
   BadRequestException,
   ForbiddenException,
@@ -66,6 +67,12 @@ export class WorkflowsService {
     });
     if (!def) throw new NotFoundException('Workflow definition not found');
 
+    const doc = await this.prisma.document.findFirst({
+      where: { id: dto.documentId, AND: [accessibleDocumentWhere(user)] },
+      select: { id: true },
+    });
+    if (!doc) throw new NotFoundException('Document not found');
+
     const steps = (def.steps as unknown as WorkflowStepDto[]).sort((a, b) => a.order - b.order);
     if (!steps.length) throw new BadRequestException('Workflow definition has no steps');
 
@@ -82,18 +89,20 @@ export class WorkflowsService {
     });
   }
 
-  findOne(id: string) {
-    return this.prisma.workflowInstance.findFirstOrThrow({
-      where: { id },
+  async findOne(id: string, user: JwtPayload) {
+    const instance = await this.prisma.workflowInstance.findFirst({
+      where: { id, document: accessibleDocumentWhere(user) },
       include: {
         ...this.instanceIncludes(),
         workflowDefinition: true,
       },
     });
+    if (!instance) throw new NotFoundException('Workflow instance not found');
+    return instance;
   }
 
-  listInstances(query: ListWorkflowInstancesDto) {
-    const where: any = {};
+  listInstances(query: ListWorkflowInstancesDto, user: JwtPayload) {
+    const where: any = { document: accessibleDocumentWhere(user) };
     if (query.documentId) where.documentId = query.documentId;
     if (query.status) where.status = query.status;
 
@@ -110,7 +119,7 @@ export class WorkflowsService {
 
   async takeAction(id: string, dto: WorkflowActionDto, user: JwtPayload) {
     const instance = await this.prisma.workflowInstance.findFirst({
-      where: { id },
+      where: { id, document: accessibleDocumentWhere(user) },
       include: { workflowDefinition: true },
     });
     if (!instance) throw new NotFoundException('Workflow instance not found');

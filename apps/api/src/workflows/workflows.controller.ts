@@ -55,14 +55,14 @@ export class WorkflowsController {
 
   @Get('workflow-instances')
   @ApiOperation({ summary: 'List workflow instances, optionally filtered by documentId or status' })
-  listInstances(@Query() q: ListWorkflowInstancesDto) {
-    return this.svc.listInstances(q);
+  listInstances(@Query() q: ListWorkflowInstancesDto, @CurrentUser() user: JwtPayload) {
+    return this.svc.listInstances(q, user);
   }
 
   @Get('workflow-instances/:id')
   @ApiOperation({ summary: 'Get full workflow instance details including history' })
-  findOne(@Param('id') id: string) {
-    return this.svc.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.svc.findOne(id, user);
   }
 
   @Post('workflow-instances')

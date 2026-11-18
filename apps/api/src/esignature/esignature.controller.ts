@@ -1,3 +1,5 @@
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { JwtPayload } from '../auth/strategies/jwt.strategy';
 import {
   Body,
   Controller,
@@ -27,16 +29,16 @@ export class ESignatureController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.OFFICER)
   @ApiOperation({ summary: 'Create an e-signature request for a document' })
-  create(@Body() dto: CreateESignatureDto) {
-    return this.svc.create(dto);
+  create(@Body() dto: CreateESignatureDto, @CurrentUser() user: JwtPayload) {
+    return this.svc.create(dto, user);
   }
 
   @Get('documents/:documentId/esignature')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'List e-signature requests for a document' })
-  listForDocument(@Param('documentId') documentId: string) {
-    return this.svc.listForDocument(documentId);
+  listForDocument(@Param('documentId') documentId: string, @CurrentUser() user: JwtPayload) {
+    return this.svc.listForDocument(documentId, user);
   }
 
   @Patch('esignature/:id/cancel')
@@ -44,8 +46,8 @@ export class ESignatureController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(Role.ADMIN, Role.OFFICER)
   @ApiOperation({ summary: 'Cancel a pending e-signature request' })
-  cancel(@Param('id') id: string) {
-    return this.svc.cancel(id);
+  cancel(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.svc.cancel(id, user);
   }
 
   /**

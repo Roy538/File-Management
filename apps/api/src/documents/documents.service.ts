@@ -1,8 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { createHash } from 'crypto';
-import { DocumentStatus } from '@prisma/client';
+import { DocumentStatus, Prisma } from '@prisma/client';
+import { accessibleDocumentWhere, accessibleFolderWhere } from '../cabinets/cabinet-access';
 import { PrismaService } from '../common/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
@@ -31,10 +32,23 @@ export class DocumentsService {
     @InjectQueue(OCR_QUEUE) private readonly ocrQueue: Queue,
   ) {}
 
+  /**
+   * Loads an active document only if it is inside a cabinet the user may access.
+   * Returns 404 (not 403) for both missing and inaccessible documents so IDs
+   * cannot be probed across tenants.
+   */
+  private async getAccessibleDoc(id: string, user: JwtPayload) {
+    const doc = await this.prisma.document.findFirst({
+      where: { id, AND: [accessibleDocumentWhere(user)] },
+    });
+    if (!doc) throw new NotFoundException('Document not found');
+    return doc;
+  }
+
   // ── List ──────────────────────────────────────────────────────────────────
 
   async listDocuments(query: ListDocumentsDto, user: JwtPayload) {
-    const where: any = { isActive: true };
+    const where: Prisma.DocumentWhereInput = { AND: [accessibleDocumentWhere(user)] };
     if (query.folderId) where.folderId = query.folderId;
     if (query.subDividerId) where.subDividerId = query.subDividerId;
     if (query.documentTypeId) where.documentTypeId = query.documentTypeId;
@@ -59,7 +73,8 @@ export class DocumentsService {
 
   // ── Detail ────────────────────────────────────────────────────────────────
 
-  async findOne(id: string) {
+  async findOne(id: string, user: JwtPayload) {
+    await this.getAccessibleDoc(id, user);
     return this.prisma.document.findFirstOrThrow({
       where: { id, isActive: true },
       include: {
@@ -83,6 +98,12 @@ export class DocumentsService {
     if (!folderId && !subDividerId) {
       throw new BadRequestException('folderId or subDividerId is required');
     }
+    // Target location must be inside a cabinet this user can access (and in their tenant).
+    const folderWhere = accessibleFolderWhere(user);
+    const targetOk = subDividerId
+      ? await this.prisma.subDivider.findFirst({ where: { id: subDividerId, isActive: true, folder: folderWhere }, select: { id: true } })
+      : await this.prisma.folder.findFirst({ where: { id: folderId, AND: [folderWhere] }, select: { id: true } });
+    if (!targetOk) throw new NotFoundException('Target folder not found');
 
     const checksum = createHash('sha256').update(buffer).digest('hex');
 
@@ -134,8 +155,8 @@ export class DocumentsService {
   // ── Upload new version ────────────────────────────────────────────────────
 
   async uploadVersion(docId: string, params: Omit<UploadParams, 'folderId' | 'subDividerId' | 'documentTypeId' | 'title'>) {
-    const doc = await this.prisma.document.findFirstOrThrow({ where: { id: docId, isActive: true } });
     const { buffer, fileName, mimeType, fileSize, user } = params;
+    const doc = await this.getAccessibleDoc(docId, user);
 
     const checksum = createHash('sha256').update(buffer).digest('hex');
     const lastVersion = await this.prisma.documentVersion.findFirst({
@@ -163,7 +184,7 @@ export class DocumentsService {
   // ── Change status ─────────────────────────────────────────────────────────
 
   async changeStatus(id: string, toStatus: DocumentStatus, user: JwtPayload) {
-    const doc = await this.prisma.document.findFirstOrThrow({ where: { id, isActive: true } });
+    const doc = await this.getAccessibleDoc(id, user);
     assertDocTransition(doc.status, toStatus);
 
     const data: any = { status: toStatus };
@@ -180,7 +201,8 @@ export class DocumentsService {
 
   // ── Download URL ──────────────────────────────────────────────────────────
 
-  async getDownloadUrl(docId: string, versionId: string) {
+  async getDownloadUrl(docId: string, versionId: string, user: JwtPayload) {
+    await this.getAccessibleDoc(docId, user);
     const version = await this.prisma.documentVersion.findFirstOrThrow({
       where: { id: versionId, documentId: docId },
     });
@@ -190,16 +212,17 @@ export class DocumentsService {
 
   // ── Soft delete ───────────────────────────────────────────────────────────
 
-  deleteDocument(id: string) {
+  async deleteDocument(id: string, user: JwtPayload) {
+    await this.getAccessibleDoc(id, user);
     return this.prisma.document.update({ where: { id }, data: { isActive: false, deletedAt: new Date() } });
   }
 
   // ── OCR backfill ──────────────────────────────────────────────────────────
 
   /** Enqueue OCR jobs for all active documents that don't yet have extracted text. */
-  async reindexOcr() {
+  async reindexOcr(user: JwtPayload) {
     const docs = await this.prisma.document.findMany({
-      where: { isActive: true, ocrText: null },
+      where: { ocrText: null, AND: [accessibleDocumentWhere(user)] },
       select: {
         id: true,
         versions: {

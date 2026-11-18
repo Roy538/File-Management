@@ -20,3 +20,4 @@ playwright-report/
 # Build outputs
 apps/web/dist/
 apps/api/dist/
+*.err

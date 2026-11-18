@@ -3,6 +3,7 @@ import { BadRequestException, ForbiddenException, NotFoundException } from '@nes
 import { Role, WorkflowStatus } from '@prisma/client';
 import { WorkflowsService } from './workflows.service';
 import { PrismaService } from '../common/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { JwtPayload } from '../auth/strategies/jwt.strategy';
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
@@ -63,6 +64,10 @@ describe('WorkflowsService', () => {
         findFirstOrThrow: jest.fn(),
         findMany: jest.fn(),
       },
+      document: {
+        // Access check in startInstance: document is visible to the caller by default.
+        findFirst: jest.fn().mockResolvedValue({ id: 'doc-1' }),
+      },
       user: {
         findFirstOrThrow: jest.fn().mockResolvedValue({ firstName: 'Test', lastName: 'Actor' }),
       },
@@ -72,6 +77,7 @@ describe('WorkflowsService', () => {
       providers: [
         WorkflowsService,
         { provide: PrismaService, useValue: prisma },
+        { provide: NotificationsService, useValue: { createForWorkflowStep: jest.fn().mockResolvedValue(undefined) } },
       ],
     }).compile();
 

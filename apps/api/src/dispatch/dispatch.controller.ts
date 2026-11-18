@@ -30,8 +30,8 @@ export class DispatchController {
   @Get(':id')
   @Roles(Role.ADMIN, Role.OFFICER, Role.DEPT_USER)
   @ApiOperation({ summary: 'Get dispatch detail' })
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.service.findOne(id, user);
   }
 
   @Post('file/:fileId')

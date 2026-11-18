@@ -1,3 +1,4 @@
+import { JwtPayload } from '../auth/strategies/jwt.strategy';
 import {
   Injectable,
   NotFoundException,
@@ -65,17 +66,17 @@ export class UsersService {
     }));
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, actor: JwtPayload) {
     const user = await this.prisma.user.findFirst({
-      where: { id, isActive: true },
+      where: { id, isActive: true, businessUnitId: actor.businessUnitId },
       select: SELECT,
     });
     if (!user) throw new NotFoundException('User not found');
     return user;
   }
 
-  async update(id: string, dto: UpdateUserDto) {
-    await this.findOne(id);
+  async update(id: string, dto: UpdateUserDto, actor: JwtPayload) {
+    await this.findOne(id, actor);
     return this.prisma.user.update({
       where: { id },
       data: dto,
@@ -83,8 +84,8 @@ export class UsersService {
     });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
+  async remove(id: string, actor: JwtPayload) {
+    await this.findOne(id, actor);
     await this.prisma.user.update({
       where: { id },
       data: { isActive: false, deletedAt: new Date() },
